@@ -1,0 +1,41 @@
+# Environment variables — never commit secrets
+.env
+.env.local
+.env.production
+
+# Go binary — compiled output
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+main
+task-tracker-api
+
+# Go test cache
+*.test
+*.out
+
+# Go build cache
+/vendor/
+/bin/
+
+# Dependency directories
+go.sum.bak
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.DS_Store
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Log files
+*.log
+
+# Air live reload config (if you use it)
+tmp/

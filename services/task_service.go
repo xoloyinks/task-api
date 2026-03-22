@@ -31,8 +31,8 @@ func (s *TaskServices) CreateTask(ctx context.Context, task *models.Task) error 
 	return s.repo.CreateTask(ctx, task)
 }
 
-func (s *TaskServices) GetAllTasks(ctx context.Context) (error, []models.Task) {
-	return s.repo.GetAllTasks(ctx)
+func (s *TaskServices) GetAllTasks(ctx context.Context, userId string) (error, []models.Task) {
+	return s.repo.GetAllTasks(ctx, userId)
 }
 
 func (s *TaskServices) GetTask(ctx context.Context, id string) (*models.Task, error) {

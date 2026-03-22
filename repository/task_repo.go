@@ -32,10 +32,12 @@ func (r *TaskRepository) CreateTask(ctx context.Context, task *models.Task) erro
 	return err
 }
 
-func (r *TaskRepository) GetAllTasks(ctx context.Context) (error, []models.Task) {
+func (r *TaskRepository) GetAllTasks(ctx context.Context, userId string) (error, []models.Task) {
 	var tasks []models.Task
 
-	cursor, err := r.collection.Find(ctx, bson.M{})
+	cursor, err := r.collection.Find(ctx, bson.M{
+		"user_id": userId,
+	})
 	if err != nil {
 		return err, nil
 	}

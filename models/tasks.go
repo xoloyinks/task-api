@@ -18,8 +18,10 @@ type Task struct {
 	ID          primitive.ObjectID `bson:"_id, omitempty" json:"id"`
 	Title       string             `bson:"title" json:"title"`
 	Description string             `bson:"description" json:"description"`
+	UserID      string             `bson:"user_id" json:"user_id"`
 	Completed   bool               `bson:"completed" json:"completed"`
 	CreartAt    time.Time          `bson:"created_at" json:"created_at"`
+	UpdatedAt   time.Time          `bson:"updated_at" json:"updated_at"`
 }
 
 type UpdateTask struct {

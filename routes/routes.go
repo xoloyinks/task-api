@@ -5,11 +5,18 @@ import (
 	"task-tracker-api/handlers"
 	"task-tracker-api/middleware"
 	"task-tracker-api/utils"
+
+	_ "task-tracker-api/docs"
+
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 func SetupRoutes(taskHandler *handlers.TaskHandler, authHandler *handlers.AuthHandler) http.Handler {
 	r := http.NewServeMux()
-	r.HandleFunc("POST /tasks", utils.Make(middleware.AuthMiddleware(taskHandler.CreateTask)))
+
+	r.Handle("/swagger/", httpSwagger.WrapHandler)
+
+	r.HandleFunc("POST /task", utils.Make(middleware.AuthMiddleware(taskHandler.CreateTask)))
 	r.HandleFunc("GET /tasks/{userId}", utils.Make(middleware.AuthMiddleware(taskHandler.GetAllTasks)))
 	r.HandleFunc("GET /task/{id}", utils.Make(middleware.AuthMiddleware(taskHandler.GetTask)))
 	r.HandleFunc("PATCH /tasks/{id}", utils.Make(middleware.AuthMiddleware(taskHandler.UpdateTask)))

@@ -5,11 +5,23 @@ import (
 	"log"
 	"net/http"
 	"task-tracker-api/config"
+	_ "task-tracker-api/docs"
 	"task-tracker-api/handlers"
 	"task-tracker-api/repository"
 	"task-tracker-api/routes"
 	"task-tracker-api/services"
 )
+
+// main.go
+// @title           Task Tracker API
+// @version         1.0
+// @description     A simple task tracker API built with Go and MongoDB
+// @host            localhost:8080
+// @BasePath        /
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 
 func main() {
 	cfg := config.Load()

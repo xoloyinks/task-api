@@ -17,6 +17,17 @@ func NewTaskHandler(service *services.TaskServices) *TaskHandler {
 	return &TaskHandler{service: service}
 }
 
+// CreateTask godoc
+// @Summary      Create a task
+// @Description  Add a new task
+// @Tags         task
+// @Accept       json
+// @Produce      json
+// @Param        task body models.Task true "Task object"
+// @Success      201 {object} models.Task
+// @Failure      400 {object} utils.AppError
+// @Security     BearerAuth
+// @Router       /task [post]
 func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) error {
 	var task models.Task
 
@@ -37,6 +48,16 @@ func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+// GetAllTasks godoc
+// @Summary      Get all tasks
+// @Description  Get all tasks for the logged in user
+// @Tags         tasks
+// @Produce      json
+// @Param        completed query bool false "Filter by completed status"
+// @Success      200 {array} models.Task
+// @Failure      500 {object} utils.AppError
+// @Security     BearerAuth
+// @Router       /tasks [get]
 func (h *TaskHandler) GetAllTasks(w http.ResponseWriter, r *http.Request) error {
 	userId := r.PathValue("userId")
 	err, tasks := h.service.GetAllTasks(r.Context(), userId)
@@ -52,6 +73,16 @@ func (h *TaskHandler) GetAllTasks(w http.ResponseWriter, r *http.Request) error 
 	return nil
 }
 
+// GetTask godoc
+// @Summary      Get a task
+// @Description  Get a single task by ID
+// @Tags         tasks
+// @Produce      json
+// @Param        id path string true "Task ID"
+// @Success      200 {object} models.Task
+// @Failure      404 {object} utils.AppError
+// @Security     BearerAuth
+// @Router       /tasks/{id} [get]
 func (h *TaskHandler) GetTask(w http.ResponseWriter, r *http.Request) error {
 	id := r.PathValue("id")
 

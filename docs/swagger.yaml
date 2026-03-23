@@ -1,0 +1,171 @@
+basePath: /
+definitions:
+  models.ActiveUser:
+    properties:
+      token:
+        type: string
+      user:
+        $ref: '#/definitions/models.ActiveUserResponse'
+    type: object
+  models.ActiveUserResponse:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  models.Login:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  models.Task:
+    properties:
+      completed:
+        type: boolean
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      title:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
+  utils.AppError:
+    properties:
+      code:
+        description: HTTP status code
+        type: integer
+      message:
+        description: error message
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: A simple task tracker API built with Go and MongoDB
+  title: Task Tracker API
+  version: "1.0"
+paths:
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Login with email and password
+      parameters:
+      - description: Login credentials
+        in: body
+        name: login
+        required: true
+        schema:
+          $ref: '#/definitions/models.Login'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ActiveUser'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.AppError'
+      summary: Login
+      tags:
+      - auth
+  /task:
+    post:
+      consumes:
+      - application/json
+      description: Add a new task
+      parameters:
+      - description: Task object
+        in: body
+        name: task
+        required: true
+        schema:
+          $ref: '#/definitions/models.Task'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Task'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.AppError'
+      security:
+      - BearerAuth: []
+      summary: Create a task
+      tags:
+      - task
+  /tasks:
+    get:
+      description: Get all tasks for the logged in user
+      parameters:
+      - description: Filter by completed status
+        in: query
+        name: completed
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Task'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.AppError'
+      security:
+      - BearerAuth: []
+      summary: Get all tasks
+      tags:
+      - tasks
+  /tasks/{id}:
+    get:
+      description: Get a single task by ID
+      parameters:
+      - description: Task ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Task'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.AppError'
+      security:
+      - BearerAuth: []
+      summary: Get a task
+      tags:
+      - tasks
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

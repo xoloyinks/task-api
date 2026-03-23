@@ -35,6 +35,16 @@ func (h *AuthHandler) CreateAccount(w http.ResponseWriter, r *http.Request) erro
 	return nil
 }
 
+// Login godoc
+// @Summary      Login
+// @Description  Login with email and password
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        login body models.Login true "Login credentials"
+// @Success      200 {object} models.ActiveUser
+// @Failure      400 {object} utils.AppError
+// @Router       /login [post]
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) error {
 	var req models.Login
 

@@ -26,7 +26,7 @@ func (s *TaskServices) CreateTask(ctx context.Context, task *models.Task) error 
 	if len(task.Title) > 100 {
 		return fmt.Errorf("title cannot exceed 100 characters")
 	}
-	task.Completed = false
+	// task.ColumnID =
 
 	return s.repo.CreateTask(ctx, task)
 }
@@ -53,8 +53,8 @@ func (s *TaskServices) UpdateTask(ctx context.Context, id string, req *models.Up
 	return s.repo.UpdateTask(ctx, id, req)
 }
 
-func (s *TaskServices) CompleteTask(ctx context.Context, id string, req *models.CompleteTask) error {
-	return s.repo.CompleteTask(ctx, id, req)
+func (s *TaskServices) Column(ctx context.Context, id string, req *models.Column) error {
+	return s.repo.Column(ctx, id, req)
 }
 
 func (s *TaskServices) DeleteTask(ctx context.Context, id string) error {

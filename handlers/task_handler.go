@@ -145,13 +145,13 @@ func (h *TaskHandler) UpdateTask(w http.ResponseWriter, r *http.Request) error {
 
 func (h *TaskHandler) CompleteTask(w http.ResponseWriter, r *http.Request) error {
 	id := r.PathValue("id")
-	var req *models.CompleteTask
+	var req *models.Column
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return err
 	}
 
-	if err := h.service.CompleteTask(r.Context(), id, req); err != nil {
+	if err := h.service.Column(r.Context(), id, req); err != nil {
 		if err.Error() == "task not found" {
 			http.Error(w, err.Error(), http.StatusNotFound)
 			return err

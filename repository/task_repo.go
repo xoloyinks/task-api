@@ -100,7 +100,7 @@ func (r *TaskRepository) UpdateTask(ctx context.Context, id string, req *models.
 
 }
 
-func (r *TaskRepository) CompleteTask(ctx context.Context, id string, req *models.CompleteTask) error {
+func (r *TaskRepository) Column(ctx context.Context, id string, req *models.Column) error {
 	objectID, err := primitive.ObjectIDFromHex(id)
 
 	if err != nil {
@@ -110,7 +110,7 @@ func (r *TaskRepository) CompleteTask(ctx context.Context, id string, req *model
 	filter := bson.M{"_id": objectID}
 	update := bson.M{
 		"$set": bson.M{
-			"completed":  req.Completed,
+			"column":     req.Name,
 			"updated_at": time.Now(),
 		},
 	}

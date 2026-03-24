@@ -7,6 +7,7 @@ import (
 	"task-tracker-api/config"
 	_ "task-tracker-api/docs"
 	"task-tracker-api/handlers"
+	"task-tracker-api/middleware"
 	"task-tracker-api/repository"
 	"task-tracker-api/routes"
 	"task-tracker-api/services"
@@ -41,6 +42,8 @@ func main() {
 	taskHandler := handlers.NewTaskHandler(taskService)
 
 	r := routes.SetupRoutes(taskHandler, authHandler)
-	log.Fatal(http.ListenAndServe(":"+cfg.AppPort, r))
+
+	loggedRouter := middleware.LoggerMiddleware(middleware.RateLimiterMiddleware(r))
+	log.Fatal(http.ListenAndServe(":"+cfg.AppPort, loggedRouter))
 
 }

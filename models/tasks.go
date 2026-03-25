@@ -10,7 +10,7 @@ type User struct {
 	ID       primitive.ObjectID `bson:"_id, omitempty" json:"id"`
 	Name     string             `bson:"name" json:"name"`
 	Email    string             `bson:"email" json:"email"`
-	TeamId   string             `bson:"team_id" json:"team_id"`
+	TeamID   []string           `bson:"team_id" json:"team_id"`
 	Password string             `bson:"password" json:"password"`
 	CreateAt time.Time          `bson:"created_at" json:"created_at"`
 }
@@ -19,7 +19,7 @@ type Team struct {
 	Name        string             `bson:"name" json:"name"`
 	ID          primitive.ObjectID `bson:"_id, omitempty" json:"id"`
 	Description string             `bson:"description" json:"description"`
-	CreatedBy   uint               `bson:"created_by" json:"created_by"`
+	CreatedBy   string             `bson:"created_by" json:"created_by"`
 	CreatedAt   time.Time          `bson:"created_at" json:"created_at"`
 }
 

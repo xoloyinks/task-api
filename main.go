@@ -29,9 +29,15 @@ func main() {
 
 	client := config.ConnectMongo(cfg)
 	defer client.Disconnect(context.TODO())
+	db := client.Database(cfg.MongoDBName)
 
-	collection := client.Database(cfg.MongoDBName).Collection(cfg.MongoCollection)
-	userCollection := client.Database(cfg.MongoDBName).Collection(cfg.UserCollection)
+	collection := db.Collection(cfg.MongoCollection)
+	userCollection := db.Collection(cfg.UserCollection)
+	teamCollection := db.Collection(cfg.TeamCollection)
+
+	if err := config.CreateIndexes(db); err != nil {
+		log.Fatal(err)
+	}
 
 	authRepo := repository.NewAuthRepository(collection, userCollection)
 	authService := services.NewAuthServices(authRepo)
@@ -41,7 +47,11 @@ func main() {
 	taskService := services.NewTaskServices(taskRepo)
 	taskHandler := handlers.NewTaskHandler(taskService)
 
-	r := routes.SetupRoutes(taskHandler, authHandler)
+	teamRepo := repository.NewTeamRepository(teamCollection, userCollection)
+	teamService := services.NewTeamServices(teamRepo)
+	teamHandler := handlers.NewTeamHandler(teamService)
+
+	r := routes.SetupRoutes(taskHandler, authHandler, teamHandler)
 
 	loggedRouter := middleware.LoggerMiddleware(middleware.RateLimiterMiddleware(r))
 	log.Fatal(http.ListenAndServe(":"+cfg.AppPort, loggedRouter))

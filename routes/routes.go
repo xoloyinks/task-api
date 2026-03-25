@@ -11,7 +11,7 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-func SetupRoutes(taskHandler *handlers.TaskHandler, authHandler *handlers.AuthHandler) http.Handler {
+func SetupRoutes(taskHandler *handlers.TaskHandler, authHandler *handlers.AuthHandler, teamHandler *handlers.TeamHandler) http.Handler {
 	r := http.NewServeMux()
 
 	r.Handle("/swagger/", httpSwagger.WrapHandler)
@@ -25,6 +25,8 @@ func SetupRoutes(taskHandler *handlers.TaskHandler, authHandler *handlers.AuthHa
 
 	r.HandleFunc("POST /createAccount", utils.Make(authHandler.CreateAccount))
 	r.HandleFunc("POST /login", utils.Make(authHandler.Login))
+
+	r.HandleFunc("POST /team", utils.Make(middleware.AuthMiddleware(teamHandler.CreateTeam)))
 
 	return r
 }

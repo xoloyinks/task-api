@@ -7,7 +7,7 @@ import (
 )
 
 type User struct {
-	ID       primitive.ObjectID `bson:"_id, omitempty" json:"id"`
+	ID       primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	Name     string             `bson:"name" json:"name"`
 	Email    string             `bson:"email" json:"email"`
 	TeamID   []string           `bson:"team_id" json:"team_id"`
@@ -17,43 +17,46 @@ type User struct {
 
 type Team struct {
 	Name        string             `bson:"name" json:"name"`
-	ID          primitive.ObjectID `bson:"_id, omitempty" json:"id"`
+	ID          primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	Description string             `bson:"description" json:"description"`
 	CreatedBy   string             `bson:"created_by" json:"created_by"`
 	CreatedAt   time.Time          `bson:"created_at" json:"created_at"`
 }
 
 type TeamMember struct {
-	ID     primitive.ObjectID `bson:"_id, omitempty" json:"id"`
-	TeamID uint               `bson:"team_id" json:"team_id"`
-	UserID uint               `bson:"user_id" json:"user_id"`
-	Role   string             `bson:"role" json:"role"`
+	ID        primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	TeamID    string             `bson:"team_id" json:"team_id"`
+	Email     string             `bson:"email" json:"email"`
+	Role      string             `bson:"role" json:"role"`
+	CreatedAt time.Time          `bson:"created_at" json:"created_at"`
 }
 
+// destination can be to team or personal
 type Board struct {
-	ID     primitive.ObjectID `bson:"_id, omitempty" json:"id"`
-	TeamID uint               `bson:"team_id" json:"team_id"`
-	Name   string             `bson:"name" json:"name"`
+	ID            primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	DestinationID string             `bson:"destination_id" json:"destination_id"`
+	Name          string             `bson:"name" json:"name"`
 }
 
 type Column struct {
-	ID      primitive.ObjectID `bson:"_id, omitempty" json:"id"`
-	BoardID uint               `bson:"board_id" json:"board_id"`
+	ID      primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	BoardID primitive.ObjectID `bson:"board_id" json:"board_id"`
 	Name    string             `bson:"name" json:"name"` // todo, in progress, completed
 }
 
+// tasks with team id are only displayed in team boards, while task with no team id are displayed only to the user boards
 type Task struct {
-	ID          primitive.ObjectID `bson:"_id, omitempty" json:"id"`
-	Title       string             `bson:"title" json:"title"`
-	Description string             `bson:"description" json:"description"`
-	TeamID      string             `bson:"team_id" json:"team_id"`
-	BoardID     uint               `bson:"board_id" json:"board_id"`
-	ColumnID    uint               `bson:"column_id" json:"column_id"`
-	Priority    string             `bson:"priority" json:"priority"`
-	Category    string             `bson:"category" json:"category"`
-	DueDate     time.Time          `bson:"due_date" json:"due_date"`
-	CreartAt    time.Time          `bson:"created_at" json:"created_at"`
-	UpdatedAt   time.Time          `bson:"updated_at" json:"updated_at"`
+	ID            primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	Title         string             `bson:"title" json:"title"`
+	Description   string             `bson:"description" json:"description"`
+	DestinationID string             `bson:"destination_id" json:"destination_id"`
+	BoardID       primitive.ObjectID `bson:"board_id" json:"board_id"`
+	ColumnID      primitive.ObjectID `bson:"column_id" json:"column_id"`
+	Priority      string             `bson:"priority" json:"priority"`
+	Category      string             `bson:"category" json:"category"`
+	DueDate       time.Time          `bson:"due_date" json:"due_date"`
+	CreatedAt     time.Time          `bson:"created_at" json:"created_at"`
+	UpdatedAt     time.Time          `bson:"updated_at" json:"updated_at"`
 }
 
 type UpdateTask struct {

@@ -31,27 +31,34 @@ func main() {
 	defer client.Disconnect(context.TODO())
 	db := client.Database(cfg.MongoDBName)
 
-	collection := db.Collection(cfg.MongoCollection)
+	taskCollection := db.Collection(cfg.MongoCollection)
 	userCollection := db.Collection(cfg.UserCollection)
+	boardCollection := db.Collection(cfg.BoardCollection)
+	columnCollection := db.Collection(cfg.ColumnCollection)
 	teamCollection := db.Collection(cfg.TeamCollection)
+	teamMemberCollection := db.Collection(cfg.TeamMemberCollection)
 
 	if err := config.CreateIndexes(db); err != nil {
 		log.Fatal(err)
 	}
 
-	authRepo := repository.NewAuthRepository(collection, userCollection)
+	authRepo := repository.NewAuthRepository(taskCollection, userCollection)
 	authService := services.NewAuthServices(authRepo)
 	authHandler := handlers.NewAuthHandler(authService)
 
-	taskRepo := repository.NewTaskRepository(collection, userCollection)
+	taskRepo := repository.NewTaskRepository(taskCollection, columnCollection, boardCollection)
 	taskService := services.NewTaskServices(taskRepo)
 	taskHandler := handlers.NewTaskHandler(taskService)
 
-	teamRepo := repository.NewTeamRepository(teamCollection, userCollection)
+	boardRepo := repository.NewBoardReposity(boardCollection)
+	boardService := services.NewBoardServices(boardRepo)
+	boardHandler := handlers.NewBoardHandler(boardService)
+
+	teamRepo := repository.NewTeamRepository(teamCollection, userCollection, teamMemberCollection)
 	teamService := services.NewTeamServices(teamRepo)
 	teamHandler := handlers.NewTeamHandler(teamService)
 
-	r := routes.SetupRoutes(taskHandler, authHandler, teamHandler)
+	r := routes.SetupRoutes(taskHandler, authHandler, teamHandler, boardHandler)
 
 	loggedRouter := middleware.LoggerMiddleware(middleware.RateLimiterMiddleware(r))
 	log.Fatal(http.ListenAndServe(":"+cfg.AppPort, loggedRouter))

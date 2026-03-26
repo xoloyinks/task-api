@@ -11,12 +11,12 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-func SetupRoutes(taskHandler *handlers.TaskHandler, authHandler *handlers.AuthHandler, teamHandler *handlers.TeamHandler) http.Handler {
+func SetupRoutes(taskHandler *handlers.TaskHandler, authHandler *handlers.AuthHandler, teamHandler *handlers.TeamHandler, boardHandler *handlers.BoardHandler) http.Handler {
 	r := http.NewServeMux()
 
 	r.Handle("/swagger/", httpSwagger.WrapHandler)
 
-	r.HandleFunc("POST /task", utils.Make(middleware.AuthMiddleware(taskHandler.CreateTask)))
+	r.HandleFunc("POST /tasks", utils.Make(middleware.AuthMiddleware(taskHandler.CreateTask)))
 	r.HandleFunc("GET /tasks/{userId}", utils.Make(middleware.AuthMiddleware(taskHandler.GetAllTasks)))
 	r.HandleFunc("GET /task/{id}", utils.Make(middleware.AuthMiddleware(taskHandler.GetTask)))
 	r.HandleFunc("PATCH /tasks/{id}", utils.Make(middleware.AuthMiddleware(taskHandler.UpdateTask)))
@@ -27,6 +27,12 @@ func SetupRoutes(taskHandler *handlers.TaskHandler, authHandler *handlers.AuthHa
 	r.HandleFunc("POST /login", utils.Make(authHandler.Login))
 
 	r.HandleFunc("POST /team", utils.Make(middleware.AuthMiddleware(teamHandler.CreateTeam)))
+	r.HandleFunc("POST /addMember/{id}", utils.Make(middleware.AuthMiddleware(teamHandler.AddMember)))
+	r.HandleFunc("GET /teams", utils.Make(middleware.AuthMiddleware(teamHandler.GetAllTeams)))
+
+	r.HandleFunc("POST /board/{id}", utils.Make(middleware.AuthMiddleware(boardHandler.CreateBoard)))
+	r.HandleFunc("GET /boards/{id}", utils.Make(middleware.AuthMiddleware(boardHandler.GetBoard)))
+	r.HandleFunc("GET /boards", utils.Make(boardHandler.GetAllBoards))
 
 	return r
 }

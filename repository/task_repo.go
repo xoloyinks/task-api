@@ -12,22 +12,67 @@ import (
 )
 
 type TaskRepository struct {
-	collection     *mongo.Collection
-	userCollection *mongo.Collection
+	taskCollection   *mongo.Collection
+	columnCollection *mongo.Collection
+	boardCollection  *mongo.Collection
 }
 
-func NewTaskRepository(collection *mongo.Collection, userCollection *mongo.Collection) *TaskRepository {
+func NewTaskRepository(taskCollection *mongo.Collection, columnCollection *mongo.Collection, boardCollection *mongo.Collection) *TaskRepository {
 	return &TaskRepository{
-		collection:     collection,
-		userCollection: userCollection,
+		taskCollection:   taskCollection,
+		columnCollection: columnCollection,
+		boardCollection:  boardCollection,
 	}
 }
 
 func (r *TaskRepository) CreateTask(ctx context.Context, task *models.Task) error {
-	task.ID = primitive.NewObjectID()
-	task.CreartAt = time.Now()
+	session, err := r.taskCollection.Database().Client().StartSession()
+	if err != nil {
+		return fmt.Errorf("error starting session")
+	}
+	defer session.EndSession(ctx)
 
-	_, err := r.collection.InsertOne(ctx, task)
+	_, err = session.WithTransaction(ctx, func(sessCtx context.Context) (interface{}, error) {
+		// 1. check board exists
+		boardObjectID, err := primitive.ObjectIDFromHex(task.BoardID.Hex())
+		if err != nil {
+			return nil, fmt.Errorf("invalid board id")
+		}
+
+		var board models.Board
+		err = r.boardCollection.FindOne(sessCtx, bson.M{"_id": boardObjectID}).Decode(&board)
+		if err != nil {
+			if err == mongo.ErrNoDocuments {
+				return nil, fmt.Errorf("board not found")
+			}
+			return nil, fmt.Errorf("error finding board")
+		}
+
+		// 2. create default column
+		column := models.Column{
+			ID:      primitive.NewObjectID(),
+			BoardID: task.BoardID,
+			Name:    "todo", // default column name
+		}
+
+		_, err = r.columnCollection.InsertOne(sessCtx, column)
+		if err != nil {
+			return nil, fmt.Errorf("error creating column")
+		}
+
+		// 3. create task with column ID
+		task.ID = primitive.NewObjectID()
+		task.ColumnID = column.ID
+		task.CreatedAt = time.Now()
+		task.UpdatedAt = time.Now()
+
+		_, err = r.taskCollection.InsertOne(sessCtx, task)
+		if err != nil {
+			return nil, fmt.Errorf("error creating task")
+		}
+
+		return nil, nil
+	})
 
 	return err
 }
@@ -35,7 +80,7 @@ func (r *TaskRepository) CreateTask(ctx context.Context, task *models.Task) erro
 func (r *TaskRepository) GetAllTasks(ctx context.Context, userId string) (error, []models.Task) {
 	var tasks []models.Task
 
-	cursor, err := r.collection.Find(ctx, bson.M{
+	cursor, err := r.taskCollection.Find(ctx, bson.M{
 		"user_id": userId,
 	})
 	if err != nil {
@@ -60,7 +105,7 @@ func (r *TaskRepository) GetTask(ctx context.Context, id string) (*models.Task, 
 	filter := bson.M{"_id": objectID}
 
 	var task models.Task
-	result := r.collection.FindOne(ctx, filter)
+	result := r.taskCollection.FindOne(ctx, filter)
 	if err := result.Decode(&task); err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, fmt.Errorf("task not found")
@@ -87,7 +132,7 @@ func (r *TaskRepository) UpdateTask(ctx context.Context, id string, req *models.
 		},
 	}
 
-	result, err := r.collection.UpdateOne(ctx, filter, update)
+	result, err := r.taskCollection.UpdateOne(ctx, filter, update)
 	if err != nil {
 		return fmt.Errorf("Error updating task")
 	}
@@ -116,7 +161,7 @@ func (r *TaskRepository) Column(ctx context.Context, id string, req *models.Colu
 	}
 
 	// mongodb update here
-	result, err := r.collection.UpdateOne(ctx, filter, update)
+	result, err := r.taskCollection.UpdateOne(ctx, filter, update)
 	if err != nil {
 		return fmt.Errorf("Error updating task")
 	}
@@ -139,7 +184,7 @@ func (r *TaskRepository) DeleteTask(ctx context.Context, id string) error {
 	// delete task with id
 	filter := bson.M{"_id": objectID}
 
-	result, err := r.collection.DeleteOne(ctx, filter)
+	result, err := r.taskCollection.DeleteOne(ctx, filter)
 
 	if err != nil {
 		return fmt.Errorf("Error deleting task")

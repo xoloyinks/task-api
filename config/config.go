@@ -14,13 +14,16 @@ import (
 )
 
 type Config struct {
-	AppPort         string
-	MongoURI        string
-	MongoDBName     string
-	MongoCollection string
-	UserCollection  string
-	TeamCollection  string
-	JwtSecret       string
+	AppPort              string
+	MongoURI             string
+	MongoDBName          string
+	MongoCollection      string
+	UserCollection       string
+	TeamCollection       string
+	ColumnCollection     string
+	BoardCollection      string
+	TeamMemberCollection string
+	JwtSecret            string
 }
 
 func Load() *Config {
@@ -29,13 +32,16 @@ func Load() *Config {
 	}
 
 	return &Config{
-		AppPort:         getEnv("APP_PORT", "8000"),
-		MongoURI:        getEnv("MONGODB_URI", ""),
-		MongoDBName:     getEnv("MONGO_DB_NAME", ""),
-		MongoCollection: getEnv("MONGO_COLLECTION", "tasks"),
-		UserCollection:  getEnv("USER_COLLECTION", "users"),
-		TeamCollection:  getEnv("TEAM_COLLECTION", "teams"),
-		JwtSecret:       getEnv("JWT_SECRET", ""),
+		AppPort:              getEnv("APP_PORT", "8000"),
+		MongoURI:             getEnv("MONGODB_URI", ""),
+		MongoDBName:          getEnv("MONGO_DB_NAME", ""),
+		MongoCollection:      getEnv("MONGO_COLLECTION", "tasks"),
+		UserCollection:       getEnv("USER_COLLECTION", "users"),
+		BoardCollection:      getEnv("BOARD_COLLECTION", "boards"),
+		TeamCollection:       getEnv("TEAM_COLLECTION", "teams"),
+		ColumnCollection:     getEnv("COLUMN_COLLECTION", "columns"),
+		TeamMemberCollection: getEnv("TEAM_MEMBER_COLLECTION", "members"),
+		JwtSecret:            getEnv("JWT_SECRET", ""),
 	}
 }
 

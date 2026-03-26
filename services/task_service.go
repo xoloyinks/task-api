@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"task-tracker-api/models"
 	"task-tracker-api/repository"
+	"task-tracker-api/utils"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -20,13 +21,21 @@ func NewTaskServices(repo *repository.TaskRepository) *TaskServices {
 }
 
 func (s *TaskServices) CreateTask(ctx context.Context, task *models.Task) error {
-	if task.Title == "" {
-		return fmt.Errorf("Title required for task")
+	// validate
+	if err := validate.Struct(task); err != nil {
+		return err
 	}
-	if len(task.Title) > 100 {
-		return fmt.Errorf("title cannot exceed 100 characters")
+
+	// validate priority
+	validPriorities := map[string]bool{"low": true, "medium": true, "high": true}
+	if task.Priority != "" && !validPriorities[task.Priority] {
+		return utils.BadRequest("priority must be low, medium or high")
 	}
-	// task.ColumnID =
+
+	// set default priority
+	if task.Priority == "" {
+		task.Priority = "low"
+	}
 
 	return s.repo.CreateTask(ctx, task)
 }

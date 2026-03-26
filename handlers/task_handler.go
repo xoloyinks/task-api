@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"task-tracker-api/models"
 	"task-tracker-api/services"
+	"task-tracker-api/utils"
 )
 
 type TaskHandler struct {
@@ -32,20 +33,18 @@ func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) error {
 	var task models.Task
 
 	if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
-		http.Error(w, "invalid request body", http.StatusBadRequest)
-		return err
+		return utils.BadRequest("invalid request body")
 	}
+
+	// get logged in user from context
+	claims := r.Context().Value(utils.ClaimsKey).(*utils.Claims)
+	task.DestinationID = claims.UserID
 
 	if err := h.service.CreateTask(r.Context(), &task); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return err
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(task)
-
-	return nil
+	return utils.WriteJSON(w, http.StatusCreated, task)
 }
 
 // GetAllTasks godoc

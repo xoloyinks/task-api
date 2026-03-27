@@ -23,6 +23,20 @@ type Team struct {
 	CreatedAt   time.Time          `bson:"created_at" json:"created_at"`
 }
 
+type TeamResponse struct {
+	ID          primitive.ObjectID `bson:"_id" json:"id"`
+	Name        string             `bson:"name" json:"name"`
+	Description string             `bson:"description" json:"description"`
+	CreatedBy   string             `bson:"created_by" json:"created_by"`
+	CreatedAt   time.Time          `bson:"created_at" json:"created_at"`
+	Members     []TeamMember       `bson:"members" json:"members"`
+}
+
+// models/team.go
+type UpdateTeam struct {
+	Name        *string `json:"name"`
+	Description *string `json:"description"`
+}
 type TeamMember struct {
 	ID        primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	TeamID    string             `bson:"team_id" json:"team_id"`
@@ -59,12 +73,27 @@ type Task struct {
 	UpdatedAt     time.Time          `bson:"updated_at" json:"updated_at"`
 }
 
+type TaskResponse struct {
+	ID          primitive.ObjectID `bson:"_id" json:"id"`
+	Title       string             `bson:"title" json:"title"`
+	Description string             `bson:"description" json:"description"`
+	AssigneeID  string             `bson:"assignee_id" json:"assignee_id"`
+	BoardID     primitive.ObjectID `bson:"board_id" json:"board_id"`
+	Priority    string             `bson:"priority" json:"priority"`
+	Category    string             `bson:"category" json:"category"`
+	DueDate     time.Time          `bson:"due_date" json:"due_date"`
+	CreatedAt   time.Time          `bson:"created_at" json:"created_at"`
+	UpdatedAt   time.Time          `bson:"updated_at" json:"updated_at"`
+	Column      Column             `bson:"column" json:"column"` // populated via $lookup
+}
+
+// models/task.go
 type UpdateTask struct {
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	Priority    string    `bson:"priority" json:"priority"`
-	Category    string    `bson:"category" json:"category"`
-	DueDate     time.Time `bson:"due_date" json:"due_date"`
+	Title       *string    `bson:"title,omitempty" json:"title"`
+	Description *string    `bson:"description,omitempty" json:"description"`
+	Priority    *string    `bson:"priority,omitempty" json:"priority"`
+	Category    *string    `bson:"category,omitempty" json:"category"`
+	DueDate     *time.Time `bson:"due_date,omitempty" json:"due_date"`
 }
 
 type Login struct {
@@ -83,4 +112,13 @@ type ActiveUserResponse struct {
 type ActiveUser struct {
 	Token string             `json:"token"`
 	User  ActiveUserResponse `json:"user"`
+}
+
+type UpdateColumn struct {
+	Name *string `json:"name" validate:"required"`
+}
+
+// models/board.go
+type UpdateBoard struct {
+	Name *string `json:"name"`
 }

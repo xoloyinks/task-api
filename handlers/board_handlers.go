@@ -56,3 +56,46 @@ func (h *BoardHandler) GetAllBoards(w http.ResponseWriter, r *http.Request) erro
 
 	return utils.WriteJSON(w, http.StatusOK, boards)
 }
+
+// handlers/board_handler.go
+func (h *BoardHandler) UpdateBoard(w http.ResponseWriter, r *http.Request) error {
+	id := r.PathValue("id")
+
+	var req models.UpdateBoard
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return utils.BadRequest("invalid request body")
+	}
+
+	if err := h.service.UpdateBoard(r.Context(), id, &req); err != nil {
+		return err
+	}
+
+	return utils.WriteJSON(w, http.StatusOK, map[string]string{
+		"message": "board updated successfully",
+	})
+}
+
+// handlers/board_handler.go
+func (h *BoardHandler) GetBoardsByDestination(w http.ResponseWriter, r *http.Request) error {
+	destinationID := r.URL.Query().Get("destination_id")
+
+	boards, err := h.service.GetBoardsByDestination(r.Context(), destinationID)
+	if err != nil {
+		return err
+	}
+
+	return utils.WriteJSON(w, http.StatusOK, boards)
+}
+
+// handlers/board_handler.go
+func (h *BoardHandler) DeleteBoard(w http.ResponseWriter, r *http.Request) error {
+	id := r.PathValue("id")
+
+	if err := h.service.DeleteBoard(r.Context(), id); err != nil {
+		return err
+	}
+
+	return utils.WriteJSON(w, http.StatusOK, map[string]string{
+		"message": "board deleted successfully",
+	})
+}

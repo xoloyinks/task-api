@@ -59,14 +59,57 @@ func (h *TeamHandler) AddMember(w http.ResponseWriter, r *http.Request) error {
 	})
 }
 
-func (h *TeamHandler) GetAllTeams(w http.ResponseWriter, r *http.Request) error {
-	teams, err := h.service.GetAllTeams(r.Context())
+// handlers/team_handler.go
+func (h *TeamHandler) GetTeams(w http.ResponseWriter, r *http.Request) error {
+	claims := r.Context().Value(utils.ClaimsKey).(*utils.Claims)
+
+	teams, err := h.service.GetTeams(r.Context(), claims.UserID)
 	if err != nil {
-		return utils.InternalServerError(err.Error())
+		return err
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(teams)
+	return utils.WriteJSON(w, http.StatusOK, teams)
+}
 
-	return nil
+// handlers/team_handler.go
+func (h *TeamHandler) GetTeam(w http.ResponseWriter, r *http.Request) error {
+	id := r.PathValue("id")
+
+	team, err := h.service.GetTeam(r.Context(), id)
+	if err != nil {
+		return err
+	}
+
+	return utils.WriteJSON(w, http.StatusOK, team)
+}
+
+// handlers/team_handler.go
+func (h *TeamHandler) UpdateTeam(w http.ResponseWriter, r *http.Request) error {
+	id := r.PathValue("id")
+
+	var req models.UpdateTeam
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return utils.BadRequest("invalid request body")
+	}
+
+	if err := h.service.UpdateTeam(r.Context(), id, &req); err != nil {
+		return err
+	}
+
+	return utils.WriteJSON(w, http.StatusOK, map[string]string{
+		"message": "team updated successfully",
+	})
+}
+
+// handlers/team_handler.go
+func (h *TeamHandler) DeleteTeam(w http.ResponseWriter, r *http.Request) error {
+	id := r.PathValue("id")
+
+	if err := h.service.DeleteTeam(r.Context(), id); err != nil {
+		return err
+	}
+
+	return utils.WriteJSON(w, http.StatusOK, map[string]string{
+		"message": "team and all its data deleted successfully",
+	})
 }

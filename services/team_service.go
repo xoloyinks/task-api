@@ -70,8 +70,68 @@ func (s *TeamServices) AddMember(ctx context.Context, teamID string, email strin
 	return nil
 }
 
-func (s *TeamServices) GetAllTeams(ctx context.Context) ([]models.Team, error) {
+// services/team_service.go
+func (s *TeamServices) GetTeams(ctx context.Context, userID string) ([]models.Team, error) {
+	teams, err := s.repo.GetTeams(ctx, userID)
+	if err != nil {
+		return nil, utils.InternalServerError("error fetching teams")
+	}
 
-	return s.repo.GetAllTeams(ctx)
+	return teams, nil
+}
 
+// services/team_service.go
+func (s *TeamServices) GetTeam(ctx context.Context, id string) (*models.TeamResponse, error) {
+	team, err := s.repo.GetTeam(ctx, id)
+	if err != nil {
+		if err.Error() == "team not found" {
+			return nil, utils.NotFound("team not found")
+		}
+		return nil, utils.InternalServerError("error fetching team")
+	}
+
+	return team, nil
+}
+
+// services/team_service.go
+func (s *TeamServices) UpdateTeam(ctx context.Context, id string, req *models.UpdateTeam) error {
+	if id == "" {
+		return utils.BadRequest("team id is required")
+	}
+
+	if req.Name == nil && req.Description == nil {
+		return utils.BadRequest("at least one field is required")
+	}
+
+	if req.Name != nil && *req.Name == "" {
+		return utils.BadRequest("name cannot be empty")
+	}
+
+	if err := s.repo.UpdateTeam(ctx, id, req); err != nil {
+		if err.Error() == "team not found" {
+			return utils.NotFound("team not found")
+		}
+		if err.Error() == "no fields to update" {
+			return utils.BadRequest("at least one field is required")
+		}
+		return utils.InternalServerError("error updating team")
+	}
+
+	return nil
+}
+
+// services/team_service.go
+func (s *TeamServices) DeleteTeam(ctx context.Context, id string) error {
+	if id == "" {
+		return utils.BadRequest("team id is required")
+	}
+
+	if err := s.repo.DeleteTeam(ctx, id); err != nil {
+		if err.Error() == "team not found" {
+			return utils.NotFound("team not found")
+		}
+		return utils.InternalServerError("error deleting team")
+	}
+
+	return nil
 }

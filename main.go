@@ -50,11 +50,11 @@ func main() {
 	taskService := services.NewTaskServices(taskRepo)
 	taskHandler := handlers.NewTaskHandler(taskService)
 
-	boardRepo := repository.NewBoardReposity(boardCollection)
+	boardRepo := repository.NewBoardReposity(boardCollection, columnCollection, taskCollection)
 	boardService := services.NewBoardServices(boardRepo)
 	boardHandler := handlers.NewBoardHandler(boardService)
 
-	teamRepo := repository.NewTeamRepository(teamCollection, userCollection, teamMemberCollection)
+	teamRepo := repository.NewTeamRepository(teamCollection, userCollection, teamMemberCollection, taskCollection, boardCollection, columnCollection)
 	teamService := services.NewTeamServices(teamRepo)
 	teamHandler := handlers.NewTeamHandler(teamService)
 

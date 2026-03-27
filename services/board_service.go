@@ -47,3 +47,56 @@ func (s *BoardServices) GetAllBoards(ctx context.Context) ([]models.Board, error
 	}
 	return boards, nil
 }
+
+// services/board_service.go
+func (s *BoardServices) UpdateBoard(ctx context.Context, id string, req *models.UpdateBoard) error {
+	if id == "" {
+		return utils.BadRequest("board id is required")
+	}
+
+	if req.Name == nil {
+		return utils.BadRequest("at least one field is required")
+	}
+
+	if err := s.repo.UpdateBoard(ctx, id, req); err != nil {
+		if err.Error() == "board not found" {
+			return utils.NotFound("board not found")
+		}
+		if err.Error() == "name cannot be empty" {
+			return utils.BadRequest("name cannot be empty")
+		}
+		return utils.InternalServerError("error updating board")
+	}
+
+	return nil
+}
+
+// services/board_service.go
+func (s *BoardServices) GetBoardsByDestination(ctx context.Context, destinationID string) ([]models.Board, error) {
+	if destinationID == "" {
+		return nil, utils.BadRequest("destination id is required")
+	}
+
+	boards, err := s.repo.GetBoardsByDestination(ctx, destinationID)
+	if err != nil {
+		return nil, utils.InternalServerError("error fetching boards")
+	}
+
+	return boards, nil
+}
+
+// services/board_service.go
+func (s *BoardServices) DeleteBoard(ctx context.Context, id string) error {
+	if id == "" {
+		return utils.BadRequest("board id is required")
+	}
+
+	if err := s.repo.DeleteBoard(ctx, id); err != nil {
+		if err.Error() == "board not found" {
+			return utils.NotFound("board not found")
+		}
+		return utils.InternalServerError("error deleting board")
+	}
+
+	return nil
+}

@@ -40,26 +40,56 @@ func (s *TaskServices) CreateTask(ctx context.Context, task *models.Task) error 
 	return s.repo.CreateTask(ctx, task)
 }
 
-func (s *TaskServices) GetAllTasks(ctx context.Context, userId string) (error, []models.Task) {
-	return s.repo.GetAllTasks(ctx, userId)
-}
-
-func (s *TaskServices) GetTask(ctx context.Context, id string) (*models.Task, error) {
-
-	if id == "" {
-		return nil, fmt.Errorf("invalid task id")
+func (s *TaskServices) GetTasks(ctx context.Context, boardID string) ([]models.TaskResponse, error) {
+	if boardID == "" {
+		return nil, utils.BadRequest("board id is required")
 	}
 
-	return s.repo.GetTask(ctx, id)
+	tasks, err := s.repo.GetTasks(ctx, boardID)
+	if err != nil {
+		return nil, utils.InternalServerError(err.Error())
+	}
 
+	return tasks, nil
 }
 
+func (s *TaskServices) GetTask(ctx context.Context, id string) (*models.TaskResponse, error) {
+	task, err := s.repo.GetTask(ctx, id)
+	if err != nil {
+		if err.Error() == "task not found" {
+			return nil, utils.NotFound("task not found")
+		}
+		return nil, utils.InternalServerError("error fetching task")
+	}
+
+	return task, nil
+}
+
+// services/task_service.go
 func (s *TaskServices) UpdateTask(ctx context.Context, id string, req *models.UpdateTask) error {
-	if req.Title == "" {
-		return fmt.Errorf("title is required")
+	if id == "" {
+		return utils.BadRequest("task id is required")
 	}
 
-	return s.repo.UpdateTask(ctx, id, req)
+	if req.Title != nil && *req.Title == "" {
+		return utils.BadRequest("title cannot be empty")
+	}
+
+	if req.Priority != nil {
+		validPriorities := map[string]bool{"low": true, "medium": true, "high": true}
+		if !validPriorities[*req.Priority] {
+			return utils.BadRequest("priority must be low, medium or high")
+		}
+	}
+
+	if err := s.repo.UpdateTask(ctx, id, req); err != nil {
+		if err.Error() == "task not found" {
+			return utils.NotFound("task not found")
+		}
+		return utils.InternalServerError("error updating task")
+	}
+
+	return nil
 }
 
 func (s *TaskServices) Column(ctx context.Context, id string, req *models.Column) error {
@@ -73,4 +103,33 @@ func (s *TaskServices) DeleteTask(ctx context.Context, id string) error {
 
 	return s.repo.DeleteTask(ctx, id)
 
+}
+
+func (s *TaskServices) UpdateColumn(ctx context.Context, id string, req *models.UpdateColumn) error {
+	if id == "" {
+		return utils.BadRequest("column id is required")
+	}
+
+	if req.Name == nil || *req.Name == "" {
+		return utils.BadRequest("column name is required")
+	}
+
+	// validate column name
+	validNames := map[string]bool{
+		"todo":        true,
+		"in progress": true,
+		"completed":   true,
+	}
+	if !validNames[*req.Name] {
+		return utils.BadRequest("column name must be todo, in progress or completed")
+	}
+
+	if err := s.repo.UpdateColumn(ctx, id, req); err != nil {
+		if err.Error() == "column not found" {
+			return utils.NotFound("column not found")
+		}
+		return utils.InternalServerError("error updating column")
+	}
+
+	return nil
 }

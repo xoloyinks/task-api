@@ -57,51 +57,26 @@ func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) error {
 // @Failure      500 {object} utils.AppError
 // @Security     BearerAuth
 // @Router       /tasks [get]
-func (h *TaskHandler) GetAllTasks(w http.ResponseWriter, r *http.Request) error {
-	userId := r.PathValue("userId")
-	err, tasks := h.service.GetAllTasks(r.Context(), userId)
+func (h *TaskHandler) GetTasks(w http.ResponseWriter, r *http.Request) error {
+	boardID := r.URL.Query().Get("board_id")
 
+	tasks, err := h.service.GetTasks(r.Context(), boardID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return err
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(tasks)
-
-	return nil
+	return utils.WriteJSON(w, http.StatusOK, tasks)
 }
 
-// GetTask godoc
-// @Summary      Get a task
-// @Description  Get a single task by ID
-// @Tags         tasks
-// @Produce      json
-// @Param        id path string true "Task ID"
-// @Success      200 {object} models.Task
-// @Failure      404 {object} utils.AppError
-// @Security     BearerAuth
-// @Router       /tasks/{id} [get]
 func (h *TaskHandler) GetTask(w http.ResponseWriter, r *http.Request) error {
 	id := r.PathValue("id")
 
 	task, err := h.service.GetTask(r.Context(), id)
-
 	if err != nil {
-		if err.Error() == "invalid task id" {
-			http.Error(w, err.Error(), http.StatusNotFound)
-			return err
-		}
-
-		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return err
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(&task)
-
-	return nil
+	return utils.WriteJSON(w, http.StatusOK, task)
 }
 
 func (h *TaskHandler) CheckId(w http.ResponseWriter, r *http.Request) error {
@@ -120,26 +95,22 @@ func (h *TaskHandler) CheckId(w http.ResponseWriter, r *http.Request) error {
 
 }
 
+// handlers/task_handler.go
 func (h *TaskHandler) UpdateTask(w http.ResponseWriter, r *http.Request) error {
 	id := r.PathValue("id")
+
 	var req models.UpdateTask
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request", http.StatusBadRequest)
-		return err
+		return utils.BadRequest("invalid request body")
 	}
 
 	if err := h.service.UpdateTask(r.Context(), id, &req); err != nil {
-		if err.Error() == "task not found" {
-			http.Error(w, err.Error(), http.StatusNotFound)
-			return err
-		}
+		return err
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "task updated successfully"})
-
-	return nil
+	return utils.WriteJSON(w, http.StatusOK, map[string]string{
+		"message": "task updated successfully",
+	})
 }
 
 func (h *TaskHandler) CompleteTask(w http.ResponseWriter, r *http.Request) error {
@@ -178,4 +149,21 @@ func (h *TaskHandler) DeleteTask(w http.ResponseWriter, r *http.Request) error {
 	json.NewEncoder(w).Encode(map[string]string{"message": "task deleted successfully"})
 
 	return nil
+}
+
+func (h *TaskHandler) UpdateColumn(w http.ResponseWriter, r *http.Request) error {
+	id := r.PathValue("id")
+
+	var req models.UpdateColumn
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return utils.BadRequest("invalid request body")
+	}
+
+	if err := h.service.UpdateColumn(r.Context(), id, &req); err != nil {
+		return err
+	}
+
+	return utils.WriteJSON(w, http.StatusOK, map[string]string{
+		"message": "column updated successfully",
+	})
 }

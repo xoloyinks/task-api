@@ -103,16 +103,6 @@ GET /stream?board_id=<id>
 * `member:added`
 * `member:removed`
 
-### Example (Client)
-
-```javascript
-const es = new EventSource(`/stream?board_id=${boardId}`);
-
-es.addEventListener("task:created", (e) => {
-  const task = JSON.parse(e.data);
-});
-```
-
 ---
 
 ## 📚 API Endpoints
@@ -308,9 +298,3 @@ http://localhost:8080/swagger/index.html
 **Kolawole Omopariola**
 Frontend & Fullstack Engineer
 
----
-
-If you want, I can also:
-
-* tailor this README for **recruiters (portfolio-focused)**
-* or add **badges, screenshots, and API examples** to make it stand out on GitHub

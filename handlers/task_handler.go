@@ -7,36 +7,25 @@ import (
 	"strconv"
 	"task-tracker-api/models"
 	"task-tracker-api/services"
+	"task-tracker-api/sse"
 	"task-tracker-api/utils"
 )
 
 type TaskHandler struct {
 	service *services.TaskServices
+	hub     *sse.Hub
 }
 
-func NewTaskHandler(service *services.TaskServices) *TaskHandler {
-	return &TaskHandler{service: service}
+func NewTaskHandler(service *services.TaskServices, hub *sse.Hub) *TaskHandler {
+	return &TaskHandler{service: service, hub: hub}
 }
 
-// CreateTask godoc
-// @Summary      Create a task
-// @Description  Add a new task
-// @Tags         task
-// @Accept       json
-// @Produce      json
-// @Param        task body models.Task true "Task object"
-// @Success      201 {object} models.Task
-// @Failure      400 {object} utils.AppError
-// @Security     BearerAuth
-// @Router       /task [post]
 func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) error {
 	var task models.Task
-
 	if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
 		return utils.BadRequest("invalid request body")
 	}
 
-	// get logged in user from context
 	claims := r.Context().Value(utils.ClaimsKey).(*utils.Claims)
 	task.DestinationID = claims.UserID
 
@@ -44,28 +33,47 @@ func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
+	// broadcast to all clients in the team
+	taskJSON, _ := json.Marshal(task)
+	h.hub.Broadcast(task.BoardID.Hex(), "task_created", string(taskJSON))
+
 	return utils.WriteJSON(w, http.StatusCreated, task)
 }
 
-// GetAllTasks godoc
-// @Summary      Get all tasks
-// @Description  Get all tasks for the logged in user
-// @Tags         tasks
-// @Produce      json
-// @Param        completed query bool false "Filter by completed status"
-// @Success      200 {array} models.Task
-// @Failure      500 {object} utils.AppError
-// @Security     BearerAuth
-// @Router       /tasks [get]
-func (h *TaskHandler) GetTasks(w http.ResponseWriter, r *http.Request) error {
-	boardID := r.URL.Query().Get("board_id")
+func (h *TaskHandler) UpdateTask(w http.ResponseWriter, r *http.Request) error {
+	id := r.PathValue("id")
 
-	tasks, err := h.service.GetTasks(r.Context(), boardID)
-	if err != nil {
+	var req models.UpdateTask
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return utils.BadRequest("invalid request body")
+	}
+
+	if err := h.service.UpdateTask(r.Context(), id, &req); err != nil {
 		return err
 	}
 
-	return utils.WriteJSON(w, http.StatusOK, tasks)
+	// broadcast update
+	reqJSON, _ := json.Marshal(req)
+	h.hub.Broadcast(id, "task_updated", string(reqJSON))
+
+	return utils.WriteJSON(w, http.StatusOK, map[string]string{
+		"message": "task updated successfully",
+	})
+}
+
+func (h *TaskHandler) DeleteTask(w http.ResponseWriter, r *http.Request) error {
+	id := r.PathValue("id")
+
+	if err := h.service.DeleteTask(r.Context(), id); err != nil {
+		return err
+	}
+
+	// broadcast delete
+	h.hub.Broadcast(id, "task_deleted", fmt.Sprintf(`{"id": "%s"}`, id))
+
+	return utils.WriteJSON(w, http.StatusOK, map[string]string{
+		"message": "task deleted successfully",
+	})
 }
 
 func (h *TaskHandler) GetTask(w http.ResponseWriter, r *http.Request) error {
@@ -95,24 +103,6 @@ func (h *TaskHandler) CheckId(w http.ResponseWriter, r *http.Request) error {
 
 }
 
-// handlers/task_handler.go
-func (h *TaskHandler) UpdateTask(w http.ResponseWriter, r *http.Request) error {
-	id := r.PathValue("id")
-
-	var req models.UpdateTask
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return utils.BadRequest("invalid request body")
-	}
-
-	if err := h.service.UpdateTask(r.Context(), id, &req); err != nil {
-		return err
-	}
-
-	return utils.WriteJSON(w, http.StatusOK, map[string]string{
-		"message": "task updated successfully",
-	})
-}
-
 func (h *TaskHandler) CompleteTask(w http.ResponseWriter, r *http.Request) error {
 	id := r.PathValue("id")
 	var req *models.Column
@@ -131,22 +121,6 @@ func (h *TaskHandler) CompleteTask(w http.ResponseWriter, r *http.Request) error
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": "task status updated successfully"})
-
-	return nil
-}
-
-func (h *TaskHandler) DeleteTask(w http.ResponseWriter, r *http.Request) error {
-	id := r.PathValue("id")
-
-	if err := h.service.DeleteTask(r.Context(), id); err != nil {
-		if err.Error() == "id cannot be empty" {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return err
-		}
-	}
-
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "task deleted successfully"})
 
 	return nil
 }

@@ -281,3 +281,51 @@ func (r *TeamRepository) DeleteTeam(ctx context.Context, id string) error {
 
 	return err
 }
+
+// repository/team_repository.go
+func (r *TeamRepository) RemoveMember(ctx context.Context, teamID string, memberID string) error {
+	memberObjectID, err := primitive.ObjectIDFromHex(memberID)
+	if err != nil {
+		return fmt.Errorf("invalid member id")
+	}
+
+	session, err := r.collection.Database().Client().StartSession()
+	if err != nil {
+		return fmt.Errorf("error starting session")
+	}
+	defer session.EndSession(ctx)
+
+	_, err = session.WithTransaction(ctx, func(sessCtx context.Context) (interface{}, error) {
+		// 1. find member before deleting — need email to update user
+		var member models.TeamMember
+		err := r.teamMemberCollection.FindOne(sessCtx, bson.M{
+			"_id":     memberObjectID,
+			"team_id": teamID,
+		}).Decode(&member)
+		if err != nil {
+			if err == mongo.ErrNoDocuments {
+				return nil, fmt.Errorf("member not found")
+			}
+			return nil, fmt.Errorf("error finding member")
+		}
+
+		// 2. delete member document
+		_, err = r.teamMemberCollection.DeleteOne(sessCtx, bson.M{"_id": memberObjectID})
+		if err != nil {
+			return nil, fmt.Errorf("error removing member")
+		}
+
+		// 3. remove teamID from user's team_id slice
+		_, err = r.userCollection.UpdateOne(sessCtx,
+			bson.M{"email": member.Email},
+			bson.M{"$pull": bson.M{"team_id": teamID}},
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error updating user")
+		}
+
+		return nil, nil
+	})
+
+	return err
+}

@@ -135,3 +135,23 @@ func (s *TeamServices) DeleteTeam(ctx context.Context, id string) error {
 
 	return nil
 }
+
+// services/team_service.go
+func (s *TeamServices) RemoveMember(ctx context.Context, teamID string, memberID string) error {
+	if teamID == "" {
+		return utils.BadRequest("team id is required")
+	}
+
+	if memberID == "" {
+		return utils.BadRequest("member id is required")
+	}
+
+	if err := s.repo.RemoveMember(ctx, teamID, memberID); err != nil {
+		if err.Error() == "member not found" {
+			return utils.NotFound("member not found")
+		}
+		return utils.InternalServerError("error removing member")
+	}
+
+	return nil
+}

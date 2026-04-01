@@ -113,3 +113,17 @@ func (h *TeamHandler) DeleteTeam(w http.ResponseWriter, r *http.Request) error {
 		"message": "team and all its data deleted successfully",
 	})
 }
+
+// handlers/team_handler.go
+func (h *TeamHandler) RemoveMember(w http.ResponseWriter, r *http.Request) error {
+	teamID := r.PathValue("id")
+	memberID := r.PathValue("memberID")
+
+	if err := h.service.RemoveMember(r.Context(), teamID, memberID); err != nil {
+		return err
+	}
+
+	return utils.WriteJSON(w, http.StatusOK, map[string]string{
+		"message": "member removed successfully",
+	})
+}

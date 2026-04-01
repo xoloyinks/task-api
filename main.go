@@ -11,6 +11,7 @@ import (
 	"task-tracker-api/repository"
 	"task-tracker-api/routes"
 	"task-tracker-api/services"
+	"task-tracker-api/sse"
 )
 
 // main.go
@@ -27,6 +28,8 @@ import (
 func main() {
 	cfg := config.Load()
 
+	hub := sse.NewHub()
+
 	client := config.ConnectMongo(cfg)
 	defer client.Disconnect(context.TODO())
 	db := client.Database(cfg.MongoDBName)
@@ -42,13 +45,15 @@ func main() {
 		log.Fatal(err)
 	}
 
+	sseHandler := sse.NewSSEHandler(hub)
+
 	authRepo := repository.NewAuthRepository(taskCollection, userCollection)
 	authService := services.NewAuthServices(authRepo)
 	authHandler := handlers.NewAuthHandler(authService)
 
 	taskRepo := repository.NewTaskRepository(taskCollection, columnCollection, boardCollection)
 	taskService := services.NewTaskServices(taskRepo)
-	taskHandler := handlers.NewTaskHandler(taskService)
+	taskHandler := handlers.NewTaskHandler(taskService, hub)
 
 	boardRepo := repository.NewBoardReposity(boardCollection, columnCollection, taskCollection)
 	boardService := services.NewBoardServices(boardRepo)
@@ -58,7 +63,7 @@ func main() {
 	teamService := services.NewTeamServices(teamRepo)
 	teamHandler := handlers.NewTeamHandler(teamService)
 
-	r := routes.SetupRoutes(taskHandler, authHandler, teamHandler, boardHandler)
+	r := routes.SetupRoutes(taskHandler, authHandler, teamHandler, boardHandler, sseHandler)
 
 	loggedRouter := middleware.LoggerMiddleware(middleware.RateLimiterMiddleware(r))
 	log.Fatal(http.ListenAndServe(":"+cfg.AppPort, loggedRouter))

@@ -89,11 +89,13 @@ type TaskResponse struct {
 
 // models/task.go
 type UpdateTask struct {
-	Title       *string    `bson:"title,omitempty" json:"title"`
-	Description *string    `bson:"description,omitempty" json:"description"`
-	Priority    *string    `bson:"priority,omitempty" json:"priority"`
-	Category    *string    `bson:"category,omitempty" json:"category"`
-	DueDate     *time.Time `bson:"due_date,omitempty" json:"due_date"`
+	BoardID     *primitive.ObjectID `json:"board_id"` // client sends this
+	Title       *string             `json:"title"`
+	Description *string             `json:"description"`
+	ColumnID    *primitive.ObjectID `json:"column_id"`
+	Priority    *string             `json:"priority"`
+	Category    *string             `json:"category"`
+	DueDate     *time.Time          `json:"due_date"`
 }
 
 type Login struct {

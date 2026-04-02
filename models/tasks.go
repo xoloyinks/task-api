@@ -74,17 +74,17 @@ type Task struct {
 }
 
 type TaskResponse struct {
-	ID          primitive.ObjectID `bson:"_id" json:"id"`
-	Title       string             `bson:"title" json:"title"`
-	Description string             `bson:"description" json:"description"`
-	AssigneeID  string             `bson:"assignee_id" json:"assignee_id"`
-	BoardID     primitive.ObjectID `bson:"board_id" json:"board_id"`
-	Priority    string             `bson:"priority" json:"priority"`
-	Category    string             `bson:"category" json:"category"`
-	DueDate     time.Time          `bson:"due_date" json:"due_date"`
-	CreatedAt   time.Time          `bson:"created_at" json:"created_at"`
-	UpdatedAt   time.Time          `bson:"updated_at" json:"updated_at"`
-	Column      Column             `bson:"column" json:"column"` // populated via $lookup
+	ID            primitive.ObjectID `bson:"_id" json:"id"`
+	Title         string             `bson:"title" json:"title"`
+	Description   string             `bson:"description" json:"description"`
+	DestinationID string             `bson:"destination_id" json:"destination_id"`
+	BoardID       primitive.ObjectID `bson:"board_id" json:"board_id"`
+	Priority      string             `bson:"priority" json:"priority"`
+	Category      string             `bson:"category" json:"category"`
+	DueDate       time.Time          `bson:"due_date" json:"due_date"`
+	CreatedAt     time.Time          `bson:"created_at" json:"created_at"`
+	UpdatedAt     time.Time          `bson:"updated_at" json:"updated_at"`
+	Column        Column             `bson:"column" json:"column"` // populated via $lookup
 }
 
 // models/task.go
@@ -123,4 +123,28 @@ type UpdateColumn struct {
 // models/board.go
 type UpdateBoard struct {
 	Name *string `json:"name"`
+}
+
+type TaskFilter struct {
+	BoardID       string `json:"board_id"`
+	ColumnID      string `json:"column_id"`
+	DestinationID string `json:"destination_id"`
+	Priority      string `json:"priority"`
+	Search        string `json:"search"`
+	Page          int64  `json:"page"`
+	Limit         int64  `json:"limit"`
+}
+
+type PaginatedTasks struct {
+	Data       []TaskResponse `json:"data"`
+	Pagination Pagination     `json:"pagination"`
+}
+
+type Pagination struct {
+	Page       int64 `json:"page"`
+	Limit      int64 `json:"limit"`
+	Total      int64 `json:"total"`
+	TotalPages int64 `json:"total_pages"`
+	HasNext    bool  `json:"has_next"`
+	HasPrev    bool  `json:"has_prev"`
 }

@@ -16,11 +16,22 @@ func NewAuthHandler(service *services.AuthServices) *AuthHandler {
 	return &AuthHandler{service: service}
 }
 
+// CreateAccount godoc
+// @Summary      Create account
+// @Description  Register a new user account
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        user body models.User true "User registration payload"
+// @Success      201 {object} map[string]string "Account created successfully"
+// @Failure      400 {object} utils.AppError
+// @Failure      500 {object} utils.AppError
+// @Router       /register [post]
 func (h *AuthHandler) CreateAccount(w http.ResponseWriter, r *http.Request) error {
 	var req models.User
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		utils.BadRequest(err.Error())
+		return utils.BadRequest(err.Error())
 	}
 
 	if err := h.service.CreateAccount(r.Context(), &req); err != nil {

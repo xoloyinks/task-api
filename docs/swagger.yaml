@@ -18,6 +18,25 @@ definitions:
       name:
         type: string
     type: object
+  models.Board:
+    properties:
+      destination_id:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  models.Column:
+    properties:
+      board_id:
+        type: string
+      id:
+        type: string
+      name:
+        description: todo, in progress, completed
+        type: string
+    type: object
   models.Login:
     properties:
       email:
@@ -25,22 +44,161 @@ definitions:
       password:
         type: string
     type: object
+  models.PaginatedTasks:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/models.TaskResponse'
+        type: array
+      pagination:
+        $ref: '#/definitions/models.Pagination'
+    type: object
+  models.Pagination:
+    properties:
+      has_next:
+        type: boolean
+      has_prev:
+        type: boolean
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+      total_pages:
+        type: integer
+    type: object
   models.Task:
     properties:
-      completed:
-        type: boolean
+      board_id:
+        type: string
+      category:
+        type: string
+      column_id:
+        type: string
       created_at:
         type: string
       description:
         type: string
+      destination_id:
+        type: string
+      due_date:
+        type: string
       id:
+        type: string
+      priority:
         type: string
       title:
         type: string
       updated_at:
         type: string
-      user_id:
+    type: object
+  models.TaskResponse:
+    properties:
+      board_id:
         type: string
+      category:
+        type: string
+      column:
+        allOf:
+        - $ref: '#/definitions/models.Column'
+        description: populated via $lookup
+      created_at:
+        type: string
+      description:
+        type: string
+      destination_id:
+        type: string
+      due_date:
+        type: string
+      id:
+        type: string
+      priority:
+        type: string
+      title:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  models.Team:
+    properties:
+      created_at:
+        type: string
+      created_by:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  models.TeamMember:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      role:
+        type: string
+      team_id:
+        type: string
+    type: object
+  models.UpdateBoard:
+    properties:
+      name:
+        type: string
+    type: object
+  models.UpdateColumn:
+    properties:
+      name:
+        type: string
+    required:
+    - name
+    type: object
+  models.UpdateTask:
+    properties:
+      board_id:
+        description: client sends this
+        type: string
+      category:
+        type: string
+      column_id:
+        type: string
+      description:
+        type: string
+      due_date:
+        type: string
+      priority:
+        type: string
+      title:
+        type: string
+    type: object
+  models.UpdateTeam:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+    type: object
+  models.User:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+      team_id:
+        items:
+          type: string
+        type: array
     type: object
   utils.AppError:
     properties:
@@ -58,6 +216,260 @@ info:
   title: Task Tracker API
   version: "1.0"
 paths:
+  /boards:
+    get:
+      description: Retrieve all boards
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Board'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.AppError'
+      summary: Get all boards
+      tags:
+      - boards
+  /boards/{id}:
+    delete:
+      description: Delete a board by ID
+      parameters:
+      - description: Board ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.AppError'
+      summary: Delete board
+      tags:
+      - boards
+    get:
+      description: Retrieve a single board by ID
+      parameters:
+      - description: Board ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Board'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.AppError'
+      summary: Get board
+      tags:
+      - boards
+    put:
+      consumes:
+      - application/json
+      description: Update a board by ID
+      parameters:
+      - description: Board ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Updated board payload
+        in: body
+        name: board
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateBoard'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.AppError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.AppError'
+      summary: Update board
+      tags:
+      - boards
+  /boards/by-destination:
+    get:
+      description: Retrieve boards filtered by destination ID
+      parameters:
+      - description: Destination ID
+        in: query
+        name: destination_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Board'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.AppError'
+      summary: Get boards by destination
+      tags:
+      - boards
+  /check/{id}:
+    get:
+      description: Validate a numeric ID from the URL path
+      parameters:
+      - description: Numeric ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.AppError'
+      security:
+      - BearerAuth: []
+      summary: Check ID
+      tags:
+      - utils
+  /columns/{id}:
+    patch:
+      consumes:
+      - application/json
+      description: Update the name of a column. Valid names are todo, in progress,
+        completed. All tasks in the column automatically reflect the new name via
+        $lookup.
+      parameters:
+      - description: Column ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Column update object
+        in: body
+        name: column
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateColumn'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.AppError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.AppError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.AppError'
+      security:
+      - BearerAuth: []
+      summary: Update a column
+      tags:
+      - columns
+  /destinations/{id}/boards:
+    post:
+      consumes:
+      - application/json
+      description: Create a new board under a destination
+      parameters:
+      - description: Destination ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Board payload
+        in: body
+        name: board
+        required: true
+        schema:
+          $ref: '#/definitions/models.Board'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.AppError'
+      summary: Create board
+      tags:
+      - boards
   /login:
     post:
       consumes:
@@ -84,11 +496,99 @@ paths:
       summary: Login
       tags:
       - auth
-  /task:
+  /register:
     post:
       consumes:
       - application/json
-      description: Add a new task
+      description: Register a new user account
+      parameters:
+      - description: User registration payload
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/models.User'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Account created successfully
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.AppError'
+      summary: Create account
+      tags:
+      - auth
+  /tasks:
+    get:
+      description: Get paginated tasks for a board with optional filters
+      parameters:
+      - description: Board ID (required)
+        in: query
+        name: board_id
+        type: string
+      - description: Filter by column ID
+        in: query
+        name: column_id
+        type: string
+      - description: Filter by assignee ID
+        in: query
+        name: destination_id
+        type: string
+      - description: Filter by priority (low, medium, high)
+        in: query
+        name: priority
+        type: string
+      - description: Search in title and description
+        in: query
+        name: search
+        type: string
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Items per page (default 10, max 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.PaginatedTasks'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.AppError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.AppError'
+      security:
+      - BearerAuth: []
+      summary: Get all tasks
+      tags:
+      - tasks
+    post:
+      consumes:
+      - application/json
+      description: Create a new task on a board. A default todo column is created
+        automatically if one does not exist for the board.
       parameters:
       - description: Task object
         in: body
@@ -107,40 +607,26 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/utils.AppError'
-      security:
-      - BearerAuth: []
-      summary: Create a task
-      tags:
-      - task
-  /tasks:
-    get:
-      description: Get all tasks for the logged in user
-      parameters:
-      - description: Filter by completed status
-        in: query
-        name: completed
-        type: boolean
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
+        "401":
+          description: Unauthorized
           schema:
-            items:
-              $ref: '#/definitions/models.Task'
-            type: array
+            $ref: '#/definitions/utils.AppError'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/utils.AppError'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/utils.AppError'
       security:
       - BearerAuth: []
-      summary: Get all tasks
+      summary: Create a task
       tags:
       - tasks
   /tasks/{id}:
-    get:
-      description: Get a single task by ID
+    delete:
+      description: Permanently delete a task by ID
       parameters:
       - description: Task ID
         in: path
@@ -153,9 +639,55 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.Task'
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.AppError'
         "404":
           description: Not Found
+          schema:
+            $ref: '#/definitions/utils.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.AppError'
+      security:
+      - BearerAuth: []
+      summary: Delete a task
+      tags:
+      - tasks
+    get:
+      description: Get a single task by ID with column details populated
+      parameters:
+      - description: Task ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.TaskResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.AppError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.AppError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.AppError'
+        "500":
+          description: Internal Server Error
           schema:
             $ref: '#/definitions/utils.AppError'
       security:
@@ -163,6 +695,316 @@ paths:
       summary: Get a task
       tags:
       - tasks
+    patch:
+      consumes:
+      - application/json
+      description: Update one or more fields of an existing task. Only provided fields
+        are updated.
+      parameters:
+      - description: Task ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: task
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateTask'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.AppError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.AppError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.AppError'
+      security:
+      - BearerAuth: []
+      summary: Update a task
+      tags:
+      - tasks
+  /tasks/{id}/complete:
+    patch:
+      consumes:
+      - application/json
+      description: Move a task to a different column
+      parameters:
+      - description: Task ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Column object
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.Column'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.AppError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.AppError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.AppError'
+      security:
+      - BearerAuth: []
+      summary: Update task column
+      tags:
+      - tasks
+  /teams:
+    get:
+      description: Retrieve all teams for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Team'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.AppError'
+      summary: Get user teams
+      tags:
+      - teams
+    post:
+      consumes:
+      - application/json
+      description: Create a new team
+      parameters:
+      - description: Team payload
+        in: body
+        name: team
+        required: true
+        schema:
+          $ref: '#/definitions/models.Team'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.AppError'
+      summary: Create team
+      tags:
+      - teams
+  /teams/{id}:
+    delete:
+      description: Delete a team and all associated data
+      parameters:
+      - description: Team ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.AppError'
+      summary: Delete team
+      tags:
+      - teams
+    get:
+      description: Retrieve a single team by ID
+      parameters:
+      - description: Team ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Team'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.AppError'
+      summary: Get team
+      tags:
+      - teams
+    put:
+      consumes:
+      - application/json
+      description: Update a team by ID
+      parameters:
+      - description: Team ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Updated team payload
+        in: body
+        name: team
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateTeam'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.AppError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.AppError'
+      summary: Update team
+      tags:
+      - teams
+  /teams/{id}/members:
+    post:
+      consumes:
+      - application/json
+      description: Add a new member to a team using email and role
+      parameters:
+      - description: Team ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Member payload
+        in: body
+        name: member
+        required: true
+        schema:
+          $ref: '#/definitions/models.TeamMember'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.AppError'
+      summary: Add member to team
+      tags:
+      - teams
+  /teams/{id}/members/{memberID}:
+    delete:
+      description: Remove a member from a team
+      parameters:
+      - description: Team ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Member ID
+        in: path
+        name: memberID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.AppError'
+      summary: Remove team member
+      tags:
+      - teams
 securityDefinitions:
   BearerAuth:
     in: header

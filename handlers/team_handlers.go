@@ -16,6 +16,17 @@ func NewTeamHandler(service *services.TeamServices) *TeamHandler {
 	return &TeamHandler{service: service}
 }
 
+// CreateTeam godoc
+// @Summary      Create team
+// @Description  Create a new team
+// @Tags         teams
+// @Accept       json
+// @Produce      json
+// @Param        team body     models.Team  true  "Team payload"
+// @Success      201  {object} map[string]string
+// @Failure      400  {object} utils.AppError
+// @Failure      500  {object} utils.AppError
+// @Router       /teams [post]
 func (h *TeamHandler) CreateTeam(w http.ResponseWriter, r *http.Request) error {
 	var req models.Team
 
@@ -38,6 +49,18 @@ func (h *TeamHandler) CreateTeam(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+// AddMember godoc
+// @Summary      Add member to team
+// @Description  Add a new member to a team using email and role
+// @Tags         teams
+// @Accept       json
+// @Produce      json
+// @Param        id     path      string              true  "Team ID"
+// @Param        member body      models.TeamMember   true  "Member payload"
+// @Success      201    {object}  map[string]string
+// @Failure      400    {object}  utils.AppError
+// @Failure      500    {object}  utils.AppError
+// @Router       /teams/{id}/members [post]
 func (h *TeamHandler) AddMember(w http.ResponseWriter, r *http.Request) error {
 	var req models.TeamMember
 
@@ -59,6 +82,15 @@ func (h *TeamHandler) AddMember(w http.ResponseWriter, r *http.Request) error {
 	})
 }
 
+// GetTeams godoc
+// @Summary      Get user teams
+// @Description  Retrieve all teams for the authenticated user
+// @Tags         teams
+// @Produce      json
+// @Success      200  {array}   models.Team
+// @Failure      401  {object}  utils.AppError
+// @Failure      500  {object}  utils.AppError
+// @Router       /teams [get]
 // handlers/team_handler.go
 func (h *TeamHandler) GetTeams(w http.ResponseWriter, r *http.Request) error {
 	claims := r.Context().Value(utils.ClaimsKey).(*utils.Claims)
@@ -71,6 +103,16 @@ func (h *TeamHandler) GetTeams(w http.ResponseWriter, r *http.Request) error {
 	return utils.WriteJSON(w, http.StatusOK, teams)
 }
 
+// GetTeam godoc
+// @Summary      Get team
+// @Description  Retrieve a single team by ID
+// @Tags         teams
+// @Produce      json
+// @Param        id   path      string  true  "Team ID"
+// @Success      200  {object}  models.Team
+// @Failure      404  {object}  utils.AppError
+// @Failure      500  {object}  utils.AppError
+// @Router       /teams/{id} [get]
 // handlers/team_handler.go
 func (h *TeamHandler) GetTeam(w http.ResponseWriter, r *http.Request) error {
 	id := r.PathValue("id")
@@ -83,6 +125,19 @@ func (h *TeamHandler) GetTeam(w http.ResponseWriter, r *http.Request) error {
 	return utils.WriteJSON(w, http.StatusOK, team)
 }
 
+// UpdateTeam godoc
+// @Summary      Update team
+// @Description  Update a team by ID
+// @Tags         teams
+// @Accept       json
+// @Produce      json
+// @Param        id    path      string              true  "Team ID"
+// @Param        team  body      models.UpdateTeam   true  "Updated team payload"
+// @Success      200   {object}  map[string]string
+// @Failure      400   {object}  utils.AppError
+// @Failure      404   {object}  utils.AppError
+// @Failure      500   {object}  utils.AppError
+// @Router       /teams/{id} [put]
 // handlers/team_handler.go
 func (h *TeamHandler) UpdateTeam(w http.ResponseWriter, r *http.Request) error {
 	id := r.PathValue("id")
@@ -101,6 +156,16 @@ func (h *TeamHandler) UpdateTeam(w http.ResponseWriter, r *http.Request) error {
 	})
 }
 
+// DeleteTeam godoc
+// @Summary      Delete team
+// @Description  Delete a team and all associated data
+// @Tags         teams
+// @Produce      json
+// @Param        id   path      string  true  "Team ID"
+// @Success      200  {object}  map[string]string
+// @Failure      404  {object}  utils.AppError
+// @Failure      500  {object}  utils.AppError
+// @Router       /teams/{id} [delete]
 // handlers/team_handler.go
 func (h *TeamHandler) DeleteTeam(w http.ResponseWriter, r *http.Request) error {
 	id := r.PathValue("id")
@@ -114,6 +179,17 @@ func (h *TeamHandler) DeleteTeam(w http.ResponseWriter, r *http.Request) error {
 	})
 }
 
+// RemoveMember godoc
+// @Summary      Remove team member
+// @Description  Remove a member from a team
+// @Tags         teams
+// @Produce      json
+// @Param        id        path      string  true  "Team ID"
+// @Param        memberID  path      string  true  "Member ID"
+// @Success      200       {object}  map[string]string
+// @Failure      404       {object}  utils.AppError
+// @Failure      500       {object}  utils.AppError
+// @Router       /teams/{id}/members/{memberID} [delete]
 // handlers/team_handler.go
 func (h *TeamHandler) RemoveMember(w http.ResponseWriter, r *http.Request) error {
 	teamID := r.PathValue("id")

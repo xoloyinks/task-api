@@ -40,12 +40,33 @@ func (s *TaskServices) CreateTask(ctx context.Context, task *models.Task) error 
 	return s.repo.CreateTask(ctx, task)
 }
 
-func (s *TaskServices) GetTasks(ctx context.Context, boardID string) ([]models.TaskResponse, error) {
-	if boardID == "" {
-		return nil, utils.BadRequest("board id is required")
+func (s *TaskServices) GetTasks(ctx context.Context, filter *models.TaskFilter) (*models.PaginatedTasks, error) {
+	// validate board id
+	if filter.BoardID == "" {
+		return nil, utils.BadRequest("board_id is required")
 	}
 
-	tasks, err := s.repo.GetTasks(ctx, boardID)
+	// validate priority
+	if filter.Priority != "" {
+		validPriorities := map[string]bool{"low": true, "medium": true, "high": true}
+		if !validPriorities[filter.Priority] {
+			return nil, utils.BadRequest("priority must be low, medium or high")
+		}
+	}
+
+	// set defaults
+	if filter.Page <= 0 {
+		filter.Page = 1
+	}
+	if filter.Limit <= 0 {
+		filter.Limit = 10
+	}
+	// cap limit at 100
+	if filter.Limit > 100 {
+		filter.Limit = 100
+	}
+
+	tasks, err := s.repo.GetTasks(ctx, filter)
 	if err != nil {
 		return nil, utils.InternalServerError(err.Error())
 	}

@@ -19,6 +19,7 @@ func SetupRoutes(taskHandler *handlers.TaskHandler, authHandler *handlers.AuthHa
 
 	r.HandleFunc("POST /tasks", utils.Make(middleware.AuthMiddleware(taskHandler.CreateTask)))
 	r.HandleFunc("GET /task/{id}", utils.Make(middleware.AuthMiddleware(taskHandler.GetTask)))
+	r.HandleFunc("GET /tasks", utils.Make(middleware.AuthMiddleware(taskHandler.GetTasks)))
 	r.HandleFunc("PATCH /tasks/{id}", utils.Make(middleware.AuthMiddleware(taskHandler.UpdateTask)))
 	r.HandleFunc("PATCH /tasks/{id}/complete", utils.Make(middleware.AuthMiddleware(taskHandler.CompleteTask)))
 	r.HandleFunc("DELETE /tasks/{id}", utils.Make(middleware.AuthMiddleware(taskHandler.DeleteTask)))

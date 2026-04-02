@@ -98,13 +98,88 @@ func (r *TaskRepository) CreateTask(ctx context.Context, task *models.Task) erro
 	return err
 }
 
-func (r *TaskRepository) GetTasks(ctx context.Context, boardID string) ([]models.TaskResponse, error) {
-	objectID, err := primitive.ObjectIDFromHex(boardID)
+func (r *TaskRepository) GetTasks(ctx context.Context, filter *models.TaskFilter) (*models.PaginatedTasks, error) {
+	// 1. build match filter
+	match := bson.M{}
+
+	// board_id — required
+	boardObjectID, err := primitive.ObjectIDFromHex(filter.BoardID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid board id")
 	}
+	match["board_id"] = boardObjectID
 
-	cursor, err := r.taskCollection.Aggregate(ctx, taskPipeline(bson.M{"board_id": objectID}))
+	// column_id — optional
+	if filter.ColumnID != "" {
+		columnObjectID, err := primitive.ObjectIDFromHex(filter.ColumnID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid column id")
+		}
+		match["column_id"] = columnObjectID
+	}
+
+	// destination_id — optional
+	if filter.DestinationID != "" {
+		match["destination_id"] = filter.DestinationID
+	}
+
+	// priority — optional
+	if filter.Priority != "" {
+		match["priority"] = filter.Priority
+	}
+
+	// search — optional, searches title and description
+	if filter.Search != "" {
+		match["$or"] = bson.A{
+			bson.M{"title": bson.M{"$regex": filter.Search, "$options": "i"}},
+			bson.M{"description": bson.M{"$regex": filter.Search, "$options": "i"}},
+		}
+	}
+
+	// 2. calculate skip
+	skip := (filter.Page - 1) * filter.Limit
+
+	// 3. count total matching documents
+	countPipeline := bson.A{
+		bson.M{"$match": match},
+		bson.M{"$count": "total"},
+	}
+
+	countCursor, err := r.taskCollection.Aggregate(ctx, countPipeline)
+	if err != nil {
+		return nil, fmt.Errorf("error counting tasks")
+	}
+	defer countCursor.Close(ctx)
+
+	var countResult []struct {
+		Total int64 `bson:"total"`
+	}
+	countCursor.All(ctx, &countResult)
+
+	total := int64(0)
+	if len(countResult) > 0 {
+		total = countResult[0].Total
+	}
+
+	// 4. build full pipeline with pagination
+	pipeline := bson.A{
+		bson.M{"$match": match},
+		bson.M{"$lookup": bson.M{
+			"from":         "columns",
+			"localField":   "column_id",
+			"foreignField": "_id",
+			"as":           "column",
+		}},
+		bson.M{"$unwind": bson.M{
+			"path":                       "$column",
+			"preserveNullAndEmptyArrays": true,
+		}},
+		bson.M{"$sort": bson.M{"created_at": -1}}, // newest first
+		bson.M{"$skip": skip},
+		bson.M{"$limit": filter.Limit},
+	}
+
+	cursor, err := r.taskCollection.Aggregate(ctx, pipeline)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching tasks")
 	}
@@ -115,7 +190,20 @@ func (r *TaskRepository) GetTasks(ctx context.Context, boardID string) ([]models
 		return nil, fmt.Errorf("error decoding tasks")
 	}
 
-	return tasks, nil
+	// 5. calculate pagination metadata
+	totalPages := (total + filter.Limit - 1) / filter.Limit
+
+	return &models.PaginatedTasks{
+		Data: tasks,
+		Pagination: models.Pagination{
+			Page:       filter.Page,
+			Limit:      filter.Limit,
+			Total:      total,
+			TotalPages: totalPages,
+			HasNext:    filter.Page < totalPages,
+			HasPrev:    filter.Page > 1,
+		},
+	}, nil
 }
 
 func (r *TaskRepository) GetTask(ctx context.Context, id string) (*models.TaskResponse, error) {

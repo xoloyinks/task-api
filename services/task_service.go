@@ -8,6 +8,7 @@ import (
 	"task-tracker-api/utils"
 
 	"github.com/go-playground/validator/v10"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 type TaskServices struct {
@@ -115,6 +116,38 @@ func (s *TaskServices) UpdateTask(ctx context.Context, id string, req *models.Up
 
 func (s *TaskServices) Column(ctx context.Context, id string, req *models.Column) error {
 	return s.repo.Column(ctx, id, req)
+}
+
+func (s *TaskServices) CreateColumn(ctx context.Context, req *models.CreateColumn) (*models.Column, error) {
+	if req.BoardID == "" {
+		return nil, utils.BadRequest("board_id is required")
+	}
+
+	validNames := map[string]bool{
+		"todo":        true,
+		"in progress": true,
+		"completed":   true,
+	}
+	if !validNames[req.Name] {
+		return nil, utils.BadRequest("name must be todo, in progress or completed")
+	}
+
+	// convert string board_id to ObjectID
+	boardObjectID, err := bson.ObjectIDFromHex(req.BoardID)
+	if err != nil {
+		return nil, utils.BadRequest("invalid board_id")
+	}
+
+	col := &models.Column{
+		BoardID: boardObjectID,
+		Name:    req.Name,
+	}
+
+	if err := s.repo.CreateColumn(ctx, col); err != nil {
+		return nil, utils.InternalServerError("error creating column")
+	}
+
+	return col, nil
 }
 
 func (s *TaskServices) DeleteTask(ctx context.Context, id string) error {

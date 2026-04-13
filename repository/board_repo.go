@@ -26,7 +26,7 @@ func NewBoardReposity(boardCollection *mongo.Collection, columnCollection *mongo
 
 func (r *BoardRepository) CreateBoard(ctx context.Context, req *models.Board) error {
 
-	req.ID = primitive.NewObjectID()
+	req.ID = bson.NewObjectID()
 
 	_, err := r.boardCollection.InsertOne(ctx, req)
 

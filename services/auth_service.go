@@ -27,6 +27,10 @@ func (s *AuthServices) CreateAccount(ctx context.Context, req *models.User) erro
 		return utils.BadRequest("email already in use")
 	}
 
+	if req.TeamID == nil {
+		req.TeamID = []string{}
+	}
+
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return utils.InternalServerError("error creating account")
@@ -34,7 +38,6 @@ func (s *AuthServices) CreateAccount(ctx context.Context, req *models.User) erro
 	req.Password = string(hashedPassword)
 
 	return s.repo.CreateAccount(ctx, req)
-
 }
 
 func (s *AuthServices) Login(ctx context.Context, req *models.Login) (*models.User, string, error) {

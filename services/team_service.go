@@ -17,17 +17,22 @@ func NewTeamServices(repo *repository.TeamRepository) *TeamServices {
 	return &TeamServices{repo: repo}
 }
 
-func (s *TeamServices) CreateTeam(ctx context.Context, req *models.Team) error {
+func (s *TeamServices) CreateTeam(ctx context.Context, req *models.Team) (string, error) {
 	if req.CreatedBy == "" {
-		return fmt.Errorf("Creator id is required")
+		return "", fmt.Errorf("Creator email is required")
 	}
 
 	existingTeam, _ := s.repo.GetTeamByName(ctx, req.Name)
 	if existingTeam != nil {
-		return utils.BadRequest("Team with name already exists")
+		return "", utils.BadRequest("Team with name already exists")
 	}
 
-	return s.repo.CreateTeam(ctx, req)
+	teamID, err := s.repo.CreateTeam(ctx, req)
+	if err != nil {
+		return "", fmt.Errorf("error creating team: %w", err)
+	}
+
+	return teamID, nil
 }
 
 func (s *TeamServices) AddMember(ctx context.Context, teamID string, email string, role string) error {
@@ -71,8 +76,8 @@ func (s *TeamServices) AddMember(ctx context.Context, teamID string, email strin
 }
 
 // services/team_service.go
-func (s *TeamServices) GetTeams(ctx context.Context, userID string) ([]models.Team, error) {
-	teams, err := s.repo.GetTeams(ctx, userID)
+func (s *TeamServices) GetTeams(ctx context.Context, email string) ([]models.Team, error) {
+	teams, err := s.repo.GetTeams(ctx, email)
 	if err != nil {
 		return nil, utils.InternalServerError("error fetching teams")
 	}

@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"log"
 	"task-tracker-api/models"
 	"time"
 
@@ -32,14 +33,65 @@ func NewTeamRepository(collection *mongo.Collection, userCollection *mongo.Colle
 }
 
 // create team
-func (r *TeamRepository) CreateTeam(ctx context.Context, req *models.Team) error {
+func (r *TeamRepository) CreateTeam(ctx context.Context, req *models.Team) (string, error) {
 
-	req.ID = primitive.NewObjectID()
-	req.CreatedAt = time.Now()
+	session, err := r.collection.Database().Client().StartSession()
+	if err != nil {
+		return "", fmt.Errorf("error starting session")
+	}
+	defer session.EndSession(ctx)
 
-	_, err := r.collection.InsertOne(ctx, req)
+	req.ID = bson.NewObjectID()
+	teamIDStr := req.ID.Hex()
 
-	return err
+	log.Printf("Creating team with ID: %s", req.ID)
+
+	_, err = session.WithTransaction(ctx, func(sessCtx context.Context) (interface{}, error) {
+
+		// operation 1 - create team
+
+		req.CreatedAt = time.Now()
+
+		_, err := r.collection.InsertOne(sessCtx, req)
+		if err != nil {
+			return nil, fmt.Errorf("error inserting team: %w", err)
+		}
+
+		// operation 2 - add teamID to user's team_id slice
+		result, err := r.userCollection.UpdateOne(
+			sessCtx,
+			bson.M{"email": req.CreatedBy},
+			bson.M{
+				"$addToSet": bson.M{
+					"team_id": teamIDStr,
+				},
+			},
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error updating user: %w", err)
+		}
+
+		if result.MatchedCount == 0 {
+			return nil, fmt.Errorf("creator user not found")
+		}
+
+		// operation 3 - create team member document for creator with admin role
+		member := models.TeamMember{
+			ID:        bson.NewObjectID(),
+			TeamID:    teamIDStr,
+			Email:     req.CreatedBy,
+			Role:      "admin",
+			CreatedAt: time.Now(),
+		}
+		_, err = r.teamMemberCollection.InsertOne(sessCtx, member)
+		if err != nil {
+			return nil, fmt.Errorf("error creating team member: %w", err)
+		}
+
+		return nil, nil
+	})
+
+	return teamIDStr, err
 }
 
 func (r *TeamRepository) GetTeamByName(ctx context.Context, name string) (*models.Team, error) {
@@ -73,7 +125,7 @@ func (r *TeamRepository) AddMember(ctx context.Context, teamID string, email str
 
 		result, err := r.userCollection.UpdateOne(sessCtx, filter, update)
 		if err != nil {
-			return nil, fmt.Errorf("error adding member to team")
+			return nil, fmt.Errorf("error adding member to team: %w", err)
 		}
 
 		if result.MatchedCount == 0 {
@@ -82,7 +134,7 @@ func (r *TeamRepository) AddMember(ctx context.Context, teamID string, email str
 
 		// operation 2
 		member := models.TeamMember{
-			ID:        primitive.NewObjectID(),
+			ID:        bson.NewObjectID(),
 			TeamID:    teamID,
 			Email:     email,
 			Role:      role,
@@ -101,10 +153,10 @@ func (r *TeamRepository) AddMember(ctx context.Context, teamID string, email str
 }
 
 // repository/team_repository.go
-func (r *TeamRepository) GetTeams(ctx context.Context, userID string) ([]models.Team, error) {
+func (r *TeamRepository) GetTeams(ctx context.Context, email string) ([]models.Team, error) {
 	var teams []models.Team
 
-	cursor, err := r.collection.Find(ctx, bson.M{"created_by": userID})
+	cursor, err := r.collection.Find(ctx, bson.M{"created_by": email})
 	if err != nil {
 		return nil, fmt.Errorf("error fetching teams")
 	}
@@ -132,19 +184,34 @@ func (r *TeamRepository) GetUserByEmail(ctx context.Context, email string) (*mod
 // repository/team_repository.go
 // richer response — team with its members
 func (r *TeamRepository) GetTeam(ctx context.Context, id string) (*models.TeamResponse, error) {
-	objectID, err := primitive.ObjectIDFromHex(id)
+	objectID, err := bson.ObjectIDFromHex(id)
 	if err != nil {
 		return nil, fmt.Errorf("invalid team id")
 	}
 
+	log.Printf("Fetching team with ID: %s", objectID)
+
 	pipeline := bson.A{
 		bson.M{"$match": bson.M{"_id": objectID}},
-		bson.M{"$lookup": bson.M{
-			"from":         "members",
-			"localField":   "_id",
-			"foreignField": "team_id",
-			"as":           "members",
-		}},
+		bson.M{
+			"$lookup": bson.M{
+				"from": "members",
+				"let":  bson.M{"teamId": "$_id"},
+				"pipeline": bson.A{
+					bson.M{
+						"$match": bson.M{
+							"$expr": bson.M{
+								"$eq": bson.A{
+									bson.M{"$toObjectId": "$team_id"}, // convert string → ObjectId
+									"$$teamId",
+								},
+							},
+						},
+					},
+				},
+				"as": "members",
+			},
+		},
 	}
 
 	cursor, err := r.collection.Aggregate(ctx, pipeline)

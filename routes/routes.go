@@ -41,6 +41,7 @@ func SetupRoutes(taskHandler *handlers.TaskHandler, authHandler *handlers.AuthHa
 	r.HandleFunc("PATCH /boards/{id}", utils.Make(middleware.AuthMiddleware(boardHandler.UpdateBoard)))
 	r.HandleFunc("DELETE /boards/{id}", utils.Make(middleware.AuthMiddleware(boardHandler.DeleteBoard)))
 
+	r.HandleFunc("POST /columns", utils.Make(middleware.AuthMiddleware(taskHandler.CreateColumn)))
 	r.HandleFunc("PATCH /columns/{id}", utils.Make(middleware.AuthMiddleware(taskHandler.UpdateColumn)))
 
 	r.HandleFunc("GET /stream", utils.Make(middleware.AuthMiddleware(sseHandler.Stream)))

@@ -74,6 +74,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) error {
 		User: models.ActiveUserResponse{
 			Email:     user.Email,
 			Name:      user.Name,
+			Teams:     user.TeamID,
 			CreatedAt: user.CreateAt,
 			ID:        user.ID,
 		},

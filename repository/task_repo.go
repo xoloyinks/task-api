@@ -69,7 +69,7 @@ func (r *TaskRepository) CreateTask(ctx context.Context, task *models.Task) erro
 		if err == mongo.ErrNoDocuments {
 			// column doesn't exist — create it
 			column = models.Column{
-				ID:      primitive.NewObjectID(),
+				ID:      bson.NewObjectID(),
 				BoardID: task.BoardID,
 				Name:    "todo",
 			}
@@ -82,7 +82,7 @@ func (r *TaskRepository) CreateTask(ctx context.Context, task *models.Task) erro
 		}
 
 		// 3. create task with existing or new column ID
-		task.ID = primitive.NewObjectID()
+		task.ID = bson.NewObjectID()
 		task.ColumnID = column.ID // reuse existing column
 		task.CreatedAt = time.Now()
 		task.UpdatedAt = time.Now()
@@ -231,6 +231,7 @@ func (r *TaskRepository) GetTask(ctx context.Context, id string) (*models.TaskRe
 }
 
 // repository/task_repository.go
+// repository/task_repository.go — convert string to ObjectID before storing
 func (r *TaskRepository) UpdateTask(ctx context.Context, id string, req *models.UpdateTask) error {
 	objectID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
@@ -254,6 +255,14 @@ func (r *TaskRepository) UpdateTask(ctx context.Context, id string, req *models.
 	if req.DueDate != nil {
 		fields["due_date"] = *req.DueDate
 	}
+	// ✅ convert string column_id to ObjectID
+	if req.ColumnID != nil && *req.ColumnID != "" {
+		colObjectID, err := primitive.ObjectIDFromHex(*req.ColumnID)
+		if err != nil {
+			return fmt.Errorf("invalid column_id")
+		}
+		fields["column_id"] = colObjectID
+	}
 
 	filter := bson.M{"_id": objectID}
 	update := bson.M{"$set": fields}
@@ -265,6 +274,34 @@ func (r *TaskRepository) UpdateTask(ctx context.Context, id string, req *models.
 
 	if result.MatchedCount == 0 {
 		return fmt.Errorf("task not found")
+	}
+
+	return nil
+}
+
+func (r *TaskRepository) CreateColumn(ctx context.Context, col *models.Column) error {
+	// check if column already exists for this board
+	var existing models.Column
+	err := r.columnCollection.FindOne(ctx, bson.M{
+		"board_id": col.BoardID,
+		"name":     col.Name,
+	}).Decode(&existing)
+
+	if err == nil {
+		// already exists — return existing ID back to caller
+		col.ID = existing.ID
+		return nil
+	}
+
+	if err != mongo.ErrNoDocuments {
+		return fmt.Errorf("error checking column")
+	}
+
+	// create it
+	col.ID = bson.NewObjectID()
+	_, err = r.columnCollection.InsertOne(ctx, col)
+	if err != nil {
+		return fmt.Errorf("error creating column")
 	}
 
 	return nil

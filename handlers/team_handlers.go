@@ -37,13 +37,16 @@ func (h *TeamHandler) CreateTeam(w http.ResponseWriter, r *http.Request) error {
 
 	}
 
-	if err := h.service.CreateTeam(r.Context(), &req); err != nil {
+	teamId, err := h.service.CreateTeam(r.Context(), &req)
+
+	if err != nil {
 		return utils.InternalServerError(err.Error())
 
 	}
 
 	utils.WriteJSON(w, http.StatusCreated, map[string]string{
 		"message": "Team created",
+		"teamId":  teamId,
 	})
 
 	return nil
@@ -95,7 +98,7 @@ func (h *TeamHandler) AddMember(w http.ResponseWriter, r *http.Request) error {
 func (h *TeamHandler) GetTeams(w http.ResponseWriter, r *http.Request) error {
 	claims := r.Context().Value(utils.ClaimsKey).(*utils.Claims)
 
-	teams, err := h.service.GetTeams(r.Context(), claims.UserID)
+	teams, err := h.service.GetTeams(r.Context(), claims.Email)
 	if err != nil {
 		return err
 	}

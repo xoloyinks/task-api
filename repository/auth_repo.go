@@ -6,7 +6,6 @@ import (
 	"task-tracker-api/models"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
@@ -24,7 +23,7 @@ func NewAuthRepository(collection *mongo.Collection, userCollection *mongo.Colle
 }
 
 func (r *AuthRepository) CreateAccount(ctx context.Context, req *models.User) error {
-	req.ID = primitive.NewObjectID()
+	req.ID = bson.NewObjectID()
 	req.CreateAt = time.Now()
 
 	_, err := r.userCollection.InsertOne(ctx, req)

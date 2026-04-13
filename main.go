@@ -12,12 +12,14 @@ import (
 	"task-tracker-api/routes"
 	"task-tracker-api/services"
 	"task-tracker-api/sse"
+
+	"github.com/rs/cors"
 )
 
 // main.go
 // @title           Task Tracker API
 // @version         1.0
-// @description     A simple task tracker API built with Go and MongoDB
+// @description     A Server-Sent Events (SSE) task tracker API built with Go and MongoDB
 // @host            localhost:8080
 // @BasePath        /
 
@@ -66,6 +68,17 @@ func main() {
 	r := routes.SetupRoutes(taskHandler, authHandler, teamHandler, boardHandler, sseHandler)
 
 	loggedRouter := middleware.LoggerMiddleware(middleware.RateLimiterMiddleware(r))
+
+	c := cors.New(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:3000"}, // frontend URL
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
+		AllowedHeaders:   []string{"*"},
+		AllowCredentials: true,
+	})
+
+	handler := c.Handler(loggedRouter)
+
+	log.Fatal(http.ListenAndServe(":"+cfg.AppPort, handler))
 	log.Fatal(http.ListenAndServe(":"+cfg.AppPort, loggedRouter))
 
 }

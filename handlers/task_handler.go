@@ -68,6 +68,7 @@ func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) error {
 // @Failure      500  {object} utils.AppError
 // @Security     BearerAuth
 // @Router       /tasks/{id} [patch]
+// handlers/task_handler.go
 func (h *TaskHandler) UpdateTask(w http.ResponseWriter, r *http.Request) error {
 	id := r.PathValue("id")
 
@@ -80,8 +81,12 @@ func (h *TaskHandler) UpdateTask(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	reqJSON, _ := json.Marshal(req)
-	h.hub.Broadcast(id, "task_updated", string(reqJSON))
+	// fetch the full updated task with populated column
+	updatedTask, err := h.service.GetTask(r.Context(), id)
+	if err == nil {
+		taskJSON, _ := json.Marshal(updatedTask)
+		h.hub.Broadcast(req.BoardID.Hex(), "task:updated", string(taskJSON))
+	}
 
 	return utils.WriteJSON(w, http.StatusOK, map[string]string{
 		"message": "task updated successfully",
@@ -233,6 +238,33 @@ func (h *TaskHandler) CompleteTask(w http.ResponseWriter, r *http.Request) error
 	json.NewEncoder(w).Encode(map[string]string{"message": "task status updated successfully"})
 
 	return nil
+}
+
+// CreateColumn godoc
+// @Summary      Create a column
+// @Description  Creates a column for a board. If the column already exists it returns the existing one.
+// @Tags         columns
+// @Accept       json
+// @Produce      json
+// @Param        column body     models.CreateColumn true "Column object"
+// @Success      201    {object} models.Column
+// @Failure      400    {object} utils.AppError
+// @Failure      401    {object} utils.AppError
+// @Failure      500    {object} utils.AppError
+// @Security     BearerAuth
+// @Router       /columns [post]
+func (h *TaskHandler) CreateColumn(w http.ResponseWriter, r *http.Request) error {
+	var req models.CreateColumn
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return utils.BadRequest("invalid request body")
+	}
+
+	col, err := h.service.CreateColumn(r.Context(), &req)
+	if err != nil {
+		return err
+	}
+
+	return utils.WriteJSON(w, http.StatusCreated, col)
 }
 
 // UpdateColumn godoc

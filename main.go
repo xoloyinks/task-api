@@ -70,7 +70,7 @@ func main() {
 	loggedRouter := middleware.LoggerMiddleware(middleware.RateLimiterMiddleware(r))
 
 	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:3000"}, // frontend URL
+		AllowedOrigins:   []string{"http://localhost:3000", "https://task-frontend-lake.vercel.app"}, // frontend URL
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
 		AllowedHeaders:   []string{"*"},
 		AllowCredentials: true,

@@ -37,14 +37,12 @@ func (h *BoardHandler) CreateBoard(w http.ResponseWriter, r *http.Request) error
 		return utils.BadRequest(err.Error())
 	}
 
-	err := h.service.CreateBoard(r.Context(), &req)
+	board, err := h.service.CreateBoard(r.Context(), &req)
 	if err != nil {
 		return utils.InternalServerError(err.Error())
 	}
 
-	return utils.WriteJSON(w, http.StatusCreated, map[string]string{
-		"message": "Board created",
-	})
+	return utils.WriteJSON(w, http.StatusCreated, board)
 }
 
 // GetBoard godoc

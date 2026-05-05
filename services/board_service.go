@@ -15,13 +15,13 @@ func NewBoardServices(repo *repository.BoardRepository) *BoardServices {
 	return &BoardServices{repo: repo}
 }
 
-func (s *BoardServices) CreateBoard(ctx context.Context, req *models.Board) error {
+func (s *BoardServices) CreateBoard(ctx context.Context, req *models.Board) (*models.Board, error) {
 	if req.DestinationID == "" {
-		return utils.BadRequest("Destination id required")
+		return nil, utils.BadRequest("Destination id required")
 	}
 
 	if req.Name == "" {
-		return utils.BadRequest("Board name is required")
+		return nil, utils.BadRequest("Board name is required")
 	}
 
 	return s.repo.CreateBoard(ctx, req)

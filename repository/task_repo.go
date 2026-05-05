@@ -6,7 +6,6 @@ import (
 	"task-tracker-api/models"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
@@ -41,10 +40,10 @@ func taskPipeline(match bson.M) bson.A {
 	}
 }
 
-func (r *TaskRepository) CreateTask(ctx context.Context, task *models.Task) error {
+func (r *TaskRepository) CreateTask(ctx context.Context, task *models.Task) (*models.TaskResponse, error) {
 	session, err := r.taskCollection.Database().Client().StartSession()
 	if err != nil {
-		return fmt.Errorf("error starting session")
+		return nil, fmt.Errorf("error starting session")
 	}
 	defer session.EndSession(ctx)
 
@@ -67,7 +66,6 @@ func (r *TaskRepository) CreateTask(ctx context.Context, task *models.Task) erro
 		}).Decode(&column)
 
 		if err == mongo.ErrNoDocuments {
-			// column doesn't exist — create it
 			column = models.Column{
 				ID:      bson.NewObjectID(),
 				BoardID: task.BoardID,
@@ -81,9 +79,9 @@ func (r *TaskRepository) CreateTask(ctx context.Context, task *models.Task) erro
 			return nil, fmt.Errorf("error finding column")
 		}
 
-		// 3. create task with existing or new column ID
+		// 3. create task
 		task.ID = bson.NewObjectID()
-		task.ColumnID = column.ID // reuse existing column
+		task.ColumnID = column.ID
 		task.CreatedAt = time.Now()
 		task.UpdatedAt = time.Now()
 
@@ -95,7 +93,23 @@ func (r *TaskRepository) CreateTask(ctx context.Context, task *models.Task) erro
 		return nil, nil
 	})
 
-	return err
+	if err != nil {
+		return nil, err
+	}
+
+	pipeline := taskPipeline(bson.M{"_id": task.ID})
+	cursor, err := r.taskCollection.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching created task")
+	}
+	defer cursor.Close(ctx)
+
+	var results []models.TaskResponse
+	if err = cursor.All(ctx, &results); err != nil || len(results) == 0 {
+		return nil, fmt.Errorf("error decoding created task")
+	}
+
+	return &results[0], nil
 }
 
 func (r *TaskRepository) GetTasks(ctx context.Context, filter *models.TaskFilter) (*models.PaginatedTasks, error) {
@@ -103,7 +117,7 @@ func (r *TaskRepository) GetTasks(ctx context.Context, filter *models.TaskFilter
 	match := bson.M{}
 
 	// board_id — required
-	boardObjectID, err := primitive.ObjectIDFromHex(filter.BoardID)
+	boardObjectID, err := bson.ObjectIDFromHex(filter.BoardID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid board id")
 	}
@@ -111,7 +125,7 @@ func (r *TaskRepository) GetTasks(ctx context.Context, filter *models.TaskFilter
 
 	// column_id — optional
 	if filter.ColumnID != "" {
-		columnObjectID, err := primitive.ObjectIDFromHex(filter.ColumnID)
+		columnObjectID, err := bson.ObjectIDFromHex(filter.ColumnID)
 		if err != nil {
 			return nil, fmt.Errorf("invalid column id")
 		}
@@ -207,7 +221,7 @@ func (r *TaskRepository) GetTasks(ctx context.Context, filter *models.TaskFilter
 }
 
 func (r *TaskRepository) GetTask(ctx context.Context, id string) (*models.TaskResponse, error) {
-	objectID, err := primitive.ObjectIDFromHex(id)
+	objectID, err := bson.ObjectIDFromHex(id)
 	if err != nil {
 		return nil, fmt.Errorf("invalid task id")
 	}
@@ -233,7 +247,7 @@ func (r *TaskRepository) GetTask(ctx context.Context, id string) (*models.TaskRe
 // repository/task_repository.go
 // repository/task_repository.go — convert string to ObjectID before storing
 func (r *TaskRepository) UpdateTask(ctx context.Context, id string, req *models.UpdateTask) error {
-	objectID, err := primitive.ObjectIDFromHex(id)
+	objectID, err := bson.ObjectIDFromHex(id)
 	if err != nil {
 		return fmt.Errorf("invalid task id")
 	}
@@ -257,7 +271,7 @@ func (r *TaskRepository) UpdateTask(ctx context.Context, id string, req *models.
 	}
 	// ✅ convert string column_id to ObjectID
 	if req.ColumnID != nil && *req.ColumnID != "" {
-		colObjectID, err := primitive.ObjectIDFromHex(*req.ColumnID)
+		colObjectID, err := bson.ObjectIDFromHex(*req.ColumnID)
 		if err != nil {
 			return fmt.Errorf("invalid column_id")
 		}
@@ -308,7 +322,7 @@ func (r *TaskRepository) CreateColumn(ctx context.Context, col *models.Column) e
 }
 
 func (r *TaskRepository) Column(ctx context.Context, id string, req *models.Column) error {
-	objectID, err := primitive.ObjectIDFromHex(id)
+	objectID, err := bson.ObjectIDFromHex(id)
 
 	if err != nil {
 		return fmt.Errorf("Invalid task id")
@@ -337,7 +351,7 @@ func (r *TaskRepository) Column(ctx context.Context, id string, req *models.Colu
 }
 
 func (r *TaskRepository) DeleteTask(ctx context.Context, id string) error {
-	objectID, err := primitive.ObjectIDFromHex(id)
+	objectID, err := bson.ObjectIDFromHex(id)
 
 	if err != nil {
 		return fmt.Errorf("Invalid task id")
@@ -361,7 +375,7 @@ func (r *TaskRepository) DeleteTask(ctx context.Context, id string) error {
 }
 
 func (r *TaskRepository) UpdateColumn(ctx context.Context, id string, req *models.UpdateColumn) error {
-	objectID, err := primitive.ObjectIDFromHex(id)
+	objectID, err := bson.ObjectIDFromHex(id)
 	if err != nil {
 		return fmt.Errorf("invalid column id")
 	}

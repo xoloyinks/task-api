@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"task-tracker-api/models"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
@@ -24,23 +23,23 @@ func NewBoardReposity(boardCollection *mongo.Collection, columnCollection *mongo
 	}
 }
 
-func (r *BoardRepository) CreateBoard(ctx context.Context, req *models.Board) error {
+func (r *BoardRepository) CreateBoard(ctx context.Context, req *models.Board) (*models.Board, error) {
 
 	req.ID = bson.NewObjectID()
 
 	_, err := r.boardCollection.InsertOne(ctx, req)
 
 	if err != nil {
-		return fmt.Errorf("Error inserting board")
+		return nil, fmt.Errorf("Error inserting board")
 	}
 
-	return nil
+	return req, nil
 
 }
 
 // repository/board_repository.go
 func (r *BoardRepository) GetBoard(ctx context.Context, id string) (*models.Board, error) {
-	objectID, err := primitive.ObjectIDFromHex(id)
+	objectID, err := bson.ObjectIDFromHex(id)
 	if err != nil {
 		return nil, fmt.Errorf("invalid board id")
 	}
@@ -76,7 +75,7 @@ func (r *BoardRepository) GetAllBoards(ctx context.Context) ([]models.Board, err
 
 // repository/board_repository.go
 func (r *BoardRepository) UpdateBoard(ctx context.Context, id string, req *models.UpdateBoard) error {
-	objectID, err := primitive.ObjectIDFromHex(id)
+	objectID, err := bson.ObjectIDFromHex(id)
 	if err != nil {
 		return fmt.Errorf("invalid board id")
 	}
@@ -129,7 +128,7 @@ func (r *BoardRepository) GetBoardsByDestination(ctx context.Context, destinatio
 
 // repository/board_repository.go
 func (r *BoardRepository) DeleteBoard(ctx context.Context, id string) error {
-	objectID, err := primitive.ObjectIDFromHex(id)
+	objectID, err := bson.ObjectIDFromHex(id)
 	if err != nil {
 		return fmt.Errorf("invalid board id")
 	}

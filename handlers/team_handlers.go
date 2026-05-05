@@ -80,8 +80,10 @@ func (h *TeamHandler) AddMember(w http.ResponseWriter, r *http.Request) error {
 		return utils.InternalServerError(err.Error())
 	}
 
+	// return email and role of the added member in the response
 	return utils.WriteJSON(w, http.StatusCreated, map[string]string{
-		"message": "member added to team successfully",
+		"email": email,
+		"role":  role,
 	})
 }
 

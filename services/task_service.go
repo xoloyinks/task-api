@@ -21,19 +21,16 @@ func NewTaskServices(repo *repository.TaskRepository) *TaskServices {
 	return &TaskServices{repo: repo}
 }
 
-func (s *TaskServices) CreateTask(ctx context.Context, task *models.Task) error {
-	// validate
+func (s *TaskServices) CreateTask(ctx context.Context, task *models.Task) (*models.TaskResponse, error) {
 	if err := validate.Struct(task); err != nil {
-		return err
+		return nil, err
 	}
 
-	// validate priority
 	validPriorities := map[string]bool{"low": true, "medium": true, "high": true}
 	if task.Priority != "" && !validPriorities[task.Priority] {
-		return utils.BadRequest("priority must be low, medium or high")
+		return nil, utils.BadRequest("priority must be low, medium or high")
 	}
 
-	// set default priority
 	if task.Priority == "" {
 		task.Priority = "low"
 	}

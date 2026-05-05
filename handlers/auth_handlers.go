@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"task-tracker-api/models"
 	"task-tracker-api/services"
@@ -14,6 +15,29 @@ type AuthHandler struct {
 
 func NewAuthHandler(service *services.AuthServices) *AuthHandler {
 	return &AuthHandler{service: service}
+}
+
+// GetUser godoc
+// @Summary      Get current user
+// @Description  Get the logged in user with populated team details
+// @Tags         auth
+// @Produce      json
+// @Success      200 {object} models.UserResponse
+// @Failure      401 {object} utils.AppError
+// @Failure      404 {object} utils.AppError
+// @Security     BearerAuth
+// @Router       /auth/me [get]
+func (h *AuthHandler) GetUser(w http.ResponseWriter, r *http.Request) error {
+	claims := r.Context().Value(utils.ClaimsKey).(*utils.Claims)
+
+	log.Printf("Fetching user details for user ID: %s", claims.UserID)
+
+	user, err := h.service.GetUser(r.Context(), claims.UserID)
+	if err != nil {
+		return err
+	}
+
+	return utils.WriteJSON(w, http.StatusOK, user)
 }
 
 // CreateAccount godoc

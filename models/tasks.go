@@ -15,6 +15,14 @@ type User struct {
 	CreateAt time.Time     `bson:"created_at" json:"created_at"`
 }
 
+type UserResponse struct {
+	ID        bson.ObjectID `bson:"_id" json:"id"`
+	Name      string        `bson:"name" json:"name"`
+	Email     string        `bson:"email" json:"email"`
+	Teams     []Team        `bson:"teams" json:"teams"`
+	CreatedAt time.Time     `bson:"created_at" json:"created_at"`
+}
+
 type Team struct {
 	Name        string        `bson:"name" json:"name"`
 	ID          bson.ObjectID `bson:"_id,omitempty" json:"id"`

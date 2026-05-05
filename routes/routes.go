@@ -26,6 +26,7 @@ func SetupRoutes(taskHandler *handlers.TaskHandler, authHandler *handlers.AuthHa
 
 	r.HandleFunc("POST /createAccount", utils.Make(authHandler.CreateAccount))
 	r.HandleFunc("POST /login", utils.Make(authHandler.Login))
+	r.HandleFunc("GET /user", utils.Make(middleware.AuthMiddleware(authHandler.GetUser)))
 
 	r.HandleFunc("POST /team", utils.Make(middleware.AuthMiddleware(teamHandler.CreateTeam)))
 	r.HandleFunc("GET /teams", utils.Make(middleware.AuthMiddleware(teamHandler.GetTeams)))

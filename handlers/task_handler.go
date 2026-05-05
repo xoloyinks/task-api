@@ -43,14 +43,15 @@ func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) error {
 	claims := r.Context().Value(utils.ClaimsKey).(*utils.Claims)
 	task.DestinationID = claims.UserID
 
-	if err := h.service.CreateTask(r.Context(), &task); err != nil {
+	populated, err := h.service.CreateTask(r.Context(), &task)
+	if err != nil {
 		return err
 	}
 
-	taskJSON, _ := json.Marshal(task)
-	h.hub.Broadcast(task.BoardID.Hex(), "task_created", string(taskJSON))
+	taskJSON, _ := json.Marshal(populated)
+	h.hub.Broadcast(populated.BoardID.Hex(), "task:created", string(taskJSON))
 
-	return utils.WriteJSON(w, http.StatusCreated, task)
+	return utils.WriteJSON(w, http.StatusCreated, populated)
 }
 
 // UpdateTask godoc

@@ -17,6 +17,17 @@ func NewAuthServices(repo *repository.AuthRepository) *AuthServices {
 	return &AuthServices{repo: repo}
 }
 
+func (s *AuthServices) GetUser(ctx context.Context, userID string) (*models.UserResponse, error) {
+	user, err := s.repo.GetUser(ctx, userID)
+	if err != nil {
+		if err.Error() == "user not found" {
+			return nil, utils.NotFound("user not found")
+		}
+		return nil, utils.InternalServerError("error fetching user")
+	}
+	return user, nil
+}
+
 func (s *AuthServices) CreateAccount(ctx context.Context, req *models.User) error {
 	if err := validate.Struct(req); err != nil {
 		return err

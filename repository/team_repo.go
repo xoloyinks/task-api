@@ -7,7 +7,6 @@ import (
 	"task-tracker-api/models"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
@@ -43,8 +42,6 @@ func (r *TeamRepository) CreateTeam(ctx context.Context, req *models.Team) (stri
 
 	req.ID = bson.NewObjectID()
 	teamIDStr := req.ID.Hex()
-
-	log.Printf("Creating team with ID: %s", req.ID)
 
 	_, err = session.WithTransaction(ctx, func(sessCtx context.Context) (interface{}, error) {
 
@@ -234,7 +231,7 @@ func (r *TeamRepository) GetTeam(ctx context.Context, id string) (*models.TeamRe
 
 // repository/team_repository.go
 func (r *TeamRepository) UpdateTeam(ctx context.Context, id string, req *models.UpdateTeam) error {
-	objectID, err := primitive.ObjectIDFromHex(id)
+	objectID, err := bson.ObjectIDFromHex(id)
 	if err != nil {
 		return fmt.Errorf("invalid team id")
 	}
@@ -274,7 +271,7 @@ func (r *TeamRepository) UpdateTeam(ctx context.Context, id string, req *models.
 
 // repository/team_repository.go
 func (r *TeamRepository) DeleteTeam(ctx context.Context, id string) error {
-	objectID, err := primitive.ObjectIDFromHex(id)
+	objectID, err := bson.ObjectIDFromHex(id)
 	if err != nil {
 		return fmt.Errorf("invalid team id")
 	}
@@ -351,7 +348,7 @@ func (r *TeamRepository) DeleteTeam(ctx context.Context, id string) error {
 
 // repository/team_repository.go
 func (r *TeamRepository) RemoveMember(ctx context.Context, teamID string, memberID string) error {
-	memberObjectID, err := primitive.ObjectIDFromHex(memberID)
+	memberObjectID, err := bson.ObjectIDFromHex(memberID)
 	if err != nil {
 		return fmt.Errorf("invalid member id")
 	}
